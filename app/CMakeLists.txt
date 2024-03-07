@@ -5,7 +5,7 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp CMAKE_CONFIGURE_DEPENDS)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # link libraries
-target_link_libraries(${PROJECT_NAME} engine)
+target_link_libraries(${PROJECT_NAME} PRIVATE engine glfw glad)
 
 # includes directories
 include_directories(${CMAKE_SOURCE_DIR}/engine/src)
