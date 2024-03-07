@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Linux",
+        "type": "cppdbg",
+        "request": "launch",
+        "console": "integratedTerminal",
+        "miDebuggerPath": "/usr/bin/gdb",
+        "cwd": "${workspaceFolder}/build/bin",
+        "program": "${workspaceFolder}/build/bin/app"
+      }
+    ]
+  }

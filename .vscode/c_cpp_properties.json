@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "configs",
+            "includePath": [
+                "${workspaceFolder}/engine/src/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "GE_EXPORT"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}",
+            "compilerPath": "/usr/bin/gcc-13"
+        }
+    ],
+    "version": 4
+}
