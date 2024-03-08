@@ -10,6 +10,7 @@ add_definitions(-D_DEBUG)
 if (UNIX)
     # search libs
     find_package(glfw3 3.3 REQUIRED)
+    find_package(glm 1.0.1 REQUIRED)
     # find_package(SDL2 REQUIRED)
     # find_package(yaml-cpp REQUIRED)
     # find_package(SDL2_ttf REQUIRED)

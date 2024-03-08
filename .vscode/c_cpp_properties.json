@@ -3,16 +3,16 @@
         {
             "name": "configs",
             "includePath": [
-                "${workspaceFolder}/engine/src/**"
+                "/home/xiao/github.com/xcheng85/graphics-engine/engine/src/**",
+                "/home/xiao/github.com/xcheng85/graphics-engine/glad/**"
             ],
             "defines": [
                 "_DEBUG",
                 "GE_EXPORT"
             ],
-            "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "${default}",
-            "compilerPath": "/usr/bin/gcc-13"
+            "cStandard": "c23",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "${default}"
         }
     ],
     "version": 4

@@ -2,6 +2,8 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 #include "pch.h"
+#include "core/inputs.h"
+#include "events/domain.h"
 #include "application.h"
 
 namespace ge
@@ -14,13 +16,10 @@ namespace ge
     {
         fprintf(stderr, "Error: %s\n", description);
     }
-
-    static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+    GE_INLINE bool onQuit(const QuitEvent &)
     {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        return _running = false;
     }
-
     void runEventLoop(const AppConfig &cfg)
     {
         config = cfg;
@@ -40,16 +39,19 @@ namespace ge
             exit(EXIT_FAILURE);
         }
 
-        glfwSetKeyCallback(window, key_callback);
-
         glfwMakeContextCurrent(window);
         gladLoadGL(glfwGetProcAddress);
         glfwSwapInterval(1);
+
+        inputs::initialize(window);
+        auto ed = inputs::eventDispatcher();
+        ed->subscribe<QuitEvent>(onQuit);
 
         while (_running)
         {
             glfwSwapBuffers(window);
             glfwPollEvents();
+            inputs::dispatchEvents();
         }
 
         glfwDestroyWindow(window);

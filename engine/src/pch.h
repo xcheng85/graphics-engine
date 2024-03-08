@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
+#include <typeinfo>
 
 // export api
 #ifdef GE_EXPORT
@@ -52,7 +53,7 @@
 #if defined(__clang__) || defined(__gcc__)
     #define GE_STATIC_ASSERT _Static_assert
 #else
-    #define FUSE_STATIC_ASSERT static_assert
+    #define GE_STATIC_ASSERT static_assert
 #endif
 
 #if defined(__clang__) || defined(__gcc__)
