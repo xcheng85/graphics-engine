@@ -1,6 +1,7 @@
 #pragma once
 
 // std libs
+#include <bit>
 #include <set>
 #include <random>
 #include <limits>

@@ -10,6 +10,7 @@ namespace ge
     std::string version;
   };
 
+  // external linkage, allow other cpp to call it
   AppConfig NewAppConfig();
 
   void runEventLoop(const AppConfig &);
