@@ -1,0 +1,102 @@
+# graphics-engine
+
+## Architecture (layers)
+
+### Third party
+1. glfw
+2. glm
+3. OpenGL
+
+### Platform Independent Layer
+1. Platform detection (macro)
+2. Primitive datatypes (macro)
+3. Networking (asio)
+4. High Res Timer (glfw)
+5. Threading library (c++ standard)
+
+### Core System
+1. Assertion(runtime/compile, macro)
+2. Math(glm)
+3. Unit Testing (gtest)
+4. Module Startup/ShutDown (namespace == module)
+5. Engine Config (extern)
+6. Random Number (c++ standard)
+7. ObjectHandle (static + template meta)
+8. Async File I/O ()
+9. Memory Allocation ()
+10. RTTI (reflection & serialization)
+11. parser (json)
+
+### Resource Layer (assert)
+1. Registry (resource manager)
+2. model
+3. texture
+4. material
+5. font
+
+### Lower-level renderer
+1. call opengl api
+2. implemented as components: cameras (update mat), material and shaders, primitive submission (how to optimize ? ), viewport (2d hud, etc), debug drawing. 
+
+### Scenegraph
+1. scenegraph manage entity (and its components)
+2. scenegraph access the lower-level renderer
+3. scenegraph access the resource layer
+4. scenegraph correlate lower-level renderer + entity using its component 
+
+### Visual Effects
+1. Partical system
+2. Postprocessing effects
+3. Light Mapping and real-time shadowing
+
+### Front End
+1. HUD: Texture quads with otho
+2. 3d bill-board
+
+### Game play foundation
+1. event system
+2. scripting system
+
+### Profiling and Debugging
+Memory analysis: determin how much memory is being used by engine
+
+dump memory usage, high water mark and leakage stats
+
+record game events and play back. 
+
+core dumps
+
+Valgrind
+
+## submodule
+```shell
+git submodule add https://github.com/glfw/glfw.git external/glfw
+```
+## glfw
+
+## glm
+
+```shell
+cd /home/xiao/Downloads/glm-1.0.1
+
+cmake \
+    -DGLM_BUILD_TESTS=OFF \
+    -DBUILD_SHARED_LIBS=OFF \
+    -B build .
+cmake --build build -- all
+sudo cmake --build build -- install
+
+```
+
+## Entity and Component with composition pattern
+SRP:
+
+entity: data
+component: behavior
+
+no inheritance
+
+Entity (Game Object): Add components
+
+SceneManager
+

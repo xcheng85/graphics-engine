@@ -1,6 +1,7 @@
 #pragma once
 #include <bit>
 #include "application.h"
+#include <iostream>
 
 // external linkage
 extern ge::AppConfig ge::NewAppConfig();

@@ -65,6 +65,27 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "format": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "shared_mutex": "cpp",
+        "__mutex_base": "cpp",
+        "__locale": "cpp",
+        "__tuple": "cpp",
+        "map": "cpp",
+        "locale": "cpp",
+        "__bit_reference": "cpp",
+        "unordered_set": "cpp",
+        "list": "cpp",
+        "__hash_table": "cpp",
+        "__tree": "cpp",
+        "__functional_base": "cpp",
+        "__functional_base_03": "cpp",
+        "filesystem": "cpp",
+        "forward_list": "cpp",
+        "any": "cpp",
+        "__split_buffer": "cpp",
+        "ios": "cpp",
+        "__config": "cpp",
+        "__functional_03": "cpp",
+        "complex": "cpp"
     }
 }

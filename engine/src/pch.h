@@ -18,6 +18,7 @@
 #include <functional>
 #include <unordered_map>
 #include <typeinfo>
+#include <memory_resource>
 
 // export api
 #ifdef GE_EXPORT

@@ -61,8 +61,6 @@ external linkage: be careful of multiple defined symbol, compiler confusion
 6. overload new//delete operator to change behavior for memory allocation
 
 ## custom memory allocator for memory-intensive application, Todo
-
-
 very useful in ECS system: Entity Component System
 
 custom allocators is control and monitoring memory usage (key)
@@ -75,16 +73,66 @@ benchmark performance boost
 heap allocation
 fragmentation
 
+### memory allocator polymorphism
+
+1. static polymorphisim: template, c++14
+
+2. classic polymorphisum: pmr, memory_resource c++17
+<memory_resource>
+
+### default allocator
+
+### linear memory allocator
+
+
+### list-based memory allocatior
+
+
+### stack based memory allocator 
+
+### c++17 polymorphic allocator
+header
+namespace
+pmr::memory_resource 
+
+
+extra layer between container and custom memory allocator
+
+1. null_memory_resource: singleton
+2. new_delete_resource: singleton
+3. monotonic_buffer_resource: multiple instance
+    holds pointer of big buffer pre-allocated
+    when buffer is used up, 
+
+    How to release ? 
+
+    but doesn’t release it with deallocation. It can only grow.
+
+
+4. unsynchronized_pool_resource: not thread-safe 
+pools of different sizes. Each pool is a set of chunks that are divided into blocks of uniform size.
+
+5. sync
+6. custom implementation
+
+mentioning that pool resources (including monotonic_buffer_resource) can be chained. If there’s no available memory in a pool, the allocator will allocate from the “upstream” resource.
+
+
+
+
+
 ## memory layout for struct 
 #pragma pack() 
 order of fields matters
 padding: explict for better documentation
 
-## memory layout for virtual class
+### memory layout for virtual class
 extra 4/8 bytes for vtable
 
-## High memory usage
+### High memory usage
 thrashing: between memory pages and disk-based pages
+
+### memory alignment
 
 
 ## Tools: 
@@ -131,7 +179,6 @@ thread priority
 thread affinity
 
 
-
 ## fiber (user space)
 provide by os api (windows)
 
@@ -139,7 +186,6 @@ provide by os api (windows)
 user-space thread, web server gaimes
 
 ## IPC communication
-
 1. pub-sub
 2. shared memory mapping
 
