@@ -9,6 +9,15 @@
         "miDebuggerPath": "/usr/bin/gdb",
         "cwd": "${workspaceFolder}/build/bin",
         "program": "${workspaceFolder}/build/bin/app"
+      },
+      {
+        "name": "profile_0",
+        "type": "cppdbg",
+        "request": "launch",
+        "console": "integratedTerminal",
+        "miDebuggerPath": "/usr/bin/gdb",
+        "cwd": "${workspaceFolder}/build/bin",
+        "program": "${workspaceFolder}/build/bin/profile_0"
       }
     ]
   }

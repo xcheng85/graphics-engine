@@ -86,6 +86,10 @@
         "ios": "cpp",
         "__config": "cpp",
         "__functional_03": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "__string": "cpp",
+        "__node_handle": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     }
 }
