@@ -90,6 +90,12 @@
         "__string": "cpp",
         "__node_handle": "cpp",
         "queue": "cpp",
-        "stack": "cpp"
-    }
+        "stack": "cpp",
+        "regex": "cpp",
+        "__memory": "cpp",
+        "string_span": "cpp",
+        "ranges": "cpp",
+        "narrow": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

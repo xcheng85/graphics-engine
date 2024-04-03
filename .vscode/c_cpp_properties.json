@@ -4,11 +4,15 @@
             "name": "configs",
             "includePath": [
                 "/home/xiao/github.com/xcheng85/graphics-engine/engine/src/**",
-                "/home/xiao/github.com/xcheng85/graphics-engine/glad/**"
+                "/home/xiao/github.com/xcheng85/graphics-engine/glad/**",
+                "/home/xiao/github.com/xcheng85/graphics-engine/external/lua",
+                "/home/xiao/github.com/xcheng85/graphics-engine/external/sdl/include/SDL3"
             ],
             "defines": [
                 "_DEBUG",
-                "GE_EXPORT"
+                "GE_EXPORT",
+                "SDL2_WINDOW",
+                "VULKAN_DEBUG_REPORT"
             ],
             "cStandard": "c23",
             "cppStandard": "c++23",

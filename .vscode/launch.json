@@ -18,6 +18,33 @@
         "miDebuggerPath": "/usr/bin/gdb",
         "cwd": "${workspaceFolder}/build/bin",
         "program": "${workspaceFolder}/build/bin/profile_0"
+      },
+      {
+        "name": "memory",
+        "type": "cppdbg",
+        "request": "launch",
+        "console": "integratedTerminal",
+        "miDebuggerPath": "/usr/bin/gdb",
+        "cwd": "${workspaceFolder}/build/bin",
+        "program": "${workspaceFolder}/build/bin/testMemory"
+      },
+      {
+        "name": "lua",
+        "type": "cppdbg",
+        "request": "launch",
+        "console": "integratedTerminal",
+        "miDebuggerPath": "/usr/bin/gdb",
+        "cwd": "${workspaceFolder}/build/bin",
+        "program": "${workspaceFolder}/build/bin/testLua"
+      },
+      {
+        "name": "testOpenGL",
+        "type": "cppdbg",
+        "request": "launch",
+        "console": "integratedTerminal",
+        "miDebuggerPath": "/usr/bin/gdb",
+        "cwd": "${workspaceFolder}/build/bin",
+        "program": "${workspaceFolder}/build/bin/testOpenGL"
       }
     ]
   }

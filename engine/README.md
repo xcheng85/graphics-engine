@@ -60,3 +60,43 @@ being consumed by components of entities
 
 component: related engine subsystem: rendering animation, collistion, mesh instance 
 
+
+
+## Rendering sub-system
+Simplest use case
+
+
+
+Material shader component for entity
+
+
+Mesh submission
+Pipeline state
+Texture,
+
+
+
+
+
+
+### Material and shaders
+program
+shaderstage
+link
+uniform handle
+
+
+buffer binding
+buffer submission
+vao
+
+bind depth test
+
+mvp buffer
+viewport
+bind shaderprogram
+bind vao
+submit
+
+## Resources & asset
+shader 

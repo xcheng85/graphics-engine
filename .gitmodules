@@ -4,3 +4,9 @@
 [submodule "external/benchmark"]
 	path = external/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "external/lua"]
+	path = external/lua
+	url = https://github.com/lua/lua.git
+[submodule "external/sdl"]
+	path = external/sdl
+	url = https://github.com/libsdl-org/SDL.git

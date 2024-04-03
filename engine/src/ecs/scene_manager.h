@@ -52,6 +52,10 @@ namespace ge::ecs
         GE_INLINE void start()
         {
             // load asset
+
+            // background
+            auto bg = addEntity("background");
+
             // start systems
             for (auto &sys : _systems)
             {

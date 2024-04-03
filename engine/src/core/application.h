@@ -1,10 +1,12 @@
 #pragma once
+
+#include "window.h"
+
 namespace ge
 {
   struct AppConfig
   {
-    int width{0};
-    int height{0};
+    WindowConfig winCfg;
     std::string title;
     std::string scene;
     std::string version;
@@ -12,6 +14,8 @@ namespace ge
 
   // external linkage, allow other cpp to call it
   AppConfig NewAppConfig();
+
+  void RegisterInputCallback();
 
   void runEventLoop(const AppConfig &);
 }

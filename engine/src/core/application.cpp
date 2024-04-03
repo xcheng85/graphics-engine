@@ -1,11 +1,15 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include "pch.h"
-#include "core/inputs.h"
+#include "core/input-system.h"
+#include "core/memory.h"
 #include "events/domain.h"
 #include "application.h"
 #include "ecs/scene_manager.h"
+#include "resource/manager.h"
+#include "window.h"
+#include "graphics/device.h"
 
 namespace ge
 {
@@ -28,10 +32,6 @@ namespace ge
     // std::pmr::monotonic_buffer_resource ge::appAllocator{buf2.data(), buf2.size(),
     //                                                  std::pmr::null_memory_resource()};
 
-    static void error_callback(int error, const char *description)
-    {
-        fprintf(stderr, "Error: %s\n", description);
-    }
     GE_INLINE bool onQuit(const QuitEvent &)
     {
         return _running = false;
@@ -44,48 +44,43 @@ namespace ge
     void runEventLoop(const AppConfig &cfg)
     {
         config = cfg;
-        GLFWwindow *window;
-        glfwSetErrorCallback(error_callback);
+        // window
+        Window window;
+        window.init(&config.winCfg);
 
-        if (!glfwInit())
-        {
-            GE_ERROR("glfwInit");
-            exit(EXIT_FAILURE);
-        }
-
-        window = glfwCreateWindow(config.width, config.height, "Simple example", NULL, NULL);
-        if (!window)
-        {
-            glfwTerminate();
-            exit(EXIT_FAILURE);
-        }
-
-        glfwMakeContextCurrent(window);
-        gladLoadGL(glfwGetProcAddress);
-        glfwSwapInterval(1);
-
-        inputs::initialize(window);
-        auto ed = inputs::eventDispatcher();
+        // input
+        InputSystem::instance()->init(nullptr);
+        RegisterInputCallback();
+        auto ed = ge::InputSystem::instance()->eventDispatcher();
         ed->subscribe<QuitEvent>(onQuit);
+
+        // memory
+        MemoryManager::instance()->init(nullptr);
+        auto *heapAllocator = &MemoryManager::instance()->heapAllocator();
+        auto *stackAllocator = &MemoryManager::instance()->stackAllocator();
+
+        // graphics
+        const auto &[width, height, title] = config.winCfg;
+        GPUDeviceCreateInfo ci;
+        ci.setWindow(width, height, window.nativeHandle()).setCustomAllocator(heapAllocator).setStackAllocator(stackAllocator);
 
         void *const p = appAllocator.allocate(sizeof(ecs::SceneManager), alignof(ecs::SceneManager));
         sm = new (p) ecs::SceneManager();
         sm->start();
 
-        lastTick = glfwGetTime();
+        // lastTick = glfwGetTime();
         while (_running)
         {
-            // singleFrameAllocator.release();
-            updateDt();
-            sm->update(dt);
+            // // singleFrameAllocator.release();
+            // updateDt();
+            // sm->update(dt);
+            window.pollEvents();
 
-            glfwSwapBuffers(window);
-            glfwPollEvents();
-            inputs::dispatchEvents();
+            // collect all the event and deal with them all at once
+            InputSystem::instance()->dispatchEvents();
         }
-
-        glfwDestroyWindow(window);
-        glfwTerminate();
+        InputSystem::instance()->shutdown();
+        window.shutdown();
         exit(EXIT_SUCCESS);
     }
 }
