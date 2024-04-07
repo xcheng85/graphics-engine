@@ -36,6 +36,65 @@ constexpr char *fragmentShaderSource =
     "{\n"
     "   FragColor = ourColor;\n"
     "}\n\0";
+
+// local space
+// pos + color + tex
+constexpr float vertices[] = {
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+
+    -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+
+    -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+
+    -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+    -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+
+// world position of center of each cube
+vec3f cubePositions[] = {
+    vec3f(std::array{0.0f, 0.0f, 0.0f}),
+    vec3f(std::array{2.0f, 5.0f, -15.0f}),
+    vec3f(std::array{-1.5f, -2.2f, -2.5f}),
+    vec3f(std::array{-3.8f, -2.0f, -12.3f}),
+    vec3f(std::array{2.4f, -0.4f, -3.5f}),
+    vec3f(std::array{-1.7f, 3.0f, -7.5f}),
+    vec3f(std::array{1.3f, -2.0f, -2.5f}),
+    vec3f(std::array{1.5f, 2.0f, -2.5f}),
+    vec3f(std::array{1.5f, 0.2f, -1.5f}),
+    vec3f(std::array{-1.3f, 1.0f, -1.5f})};
+
 // GLuint shaderProgramHandle;
 Shader g_ShaderProgram;
 unsigned int VAO;
@@ -69,74 +128,37 @@ int main()
     }
     g_ShaderProgram = Shader("shaders/test.vert", "shaders/test.frag");
 
-    // // shader
-    // const auto vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
-    // glShaderSource(vertexShaderHandle, 1, &vertexShaderSource, NULL);
-    // glCompileShader(vertexShaderHandle);
-
-    // int success;
-    // constexpr uint16_t byteSize = 512;
-    // char infoLog[byteSize];
-    // glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
-    // if (!success)
-    // {
-    //     glGetShaderInfoLog(vertexShaderHandle, byteSize, nullptr, infoLog);
-    //     std::cerr << "Vertex Shader Compilation Error: \n"
-    //               << infoLog << std::endl;
-    // }
-    // const auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
-    // glShaderSource(fragmentShaderHandle, 1, &fragmentShaderSource, NULL);
-    // glCompileShader(fragmentShaderHandle);
-    // glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
-    // if (!success)
-    // {
-    //     glGetShaderInfoLog(fragmentShaderHandle, byteSize, nullptr, infoLog);
-    //     std::cout << "Fragment Shader Compilation Error: \n"
-    //               << infoLog << std::endl;
-    // }
-    // shaderProgramHandle = glCreateProgram();
-    // glAttachShader(shaderProgramHandle, vertexShaderHandle);
-    // glAttachShader(shaderProgramHandle, fragmentShaderHandle);
-    // glLinkProgram(shaderProgramHandle);
-    // glGetProgramiv(shaderProgramHandle, GL_LINK_STATUS, &success);
-    // if (!success)
-    // {
-    //     glGetProgramInfoLog(shaderProgramHandle, byteSize, nullptr, infoLog);
-    //     std::cout << "Shader Program Linking Error: \n"
-    //               << infoLog << std::endl;
-    // }
-    // glDeleteShader(vertexShaderHandle);
-    // glDeleteShader(fragmentShaderHandle);
-
     // vertex inputs
     // ndc space:
-    float vertices[] = {
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
-    unsigned int indices[] = {
-        0, 1, 3,
-        1, 2, 3};
-
-    // // position and color
     // float vertices[] = {
-    //     0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-    //     -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-    //     0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f};
+    //     0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+    //     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+    //     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    //     -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f};
 
-    unsigned int VBO, EBO;
+    // unsigned int indices[] = {
+    //     0, 1, 3,
+    //     1, 2, 3};
+
+    // // // position and color
+    // // float vertices[] = {
+    // //     0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+    // //     -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+    // //     0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f};
+
+    unsigned int VBO;
     // VAO includes all the vertex attribute buffer (<=16) + element buffer
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    // glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     // glEnableVertexAttribArray(0);
 
@@ -275,7 +297,8 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
     glfwTerminate();
     return 0;
 }
@@ -301,7 +324,7 @@ void update()
 void render()
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     g_ShaderProgram.activate();
 
@@ -314,10 +337,30 @@ void render()
     float intensity = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
     g_ShaderProgram.setVec4("intensity", intensity, intensity, intensity, intensity);
 
-    auto transform = MatrixMultiply4x4(mat4x4f(1.0f), MatrixScale4x4(2.0f, 2.0f, 2.0f));
-    g_ShaderProgram.setMat4("transform", transform);
+    mat4x4f identity(1.0f);
+    // +20.f, move away, zoom out
+    auto view = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
+    auto persPrj = PerspectiveProjectionTransformLH(0.1f, 100.0f, 0.5f, (float)SCR_WIDTH / (float)SCR_HEIGHT);
+    g_ShaderProgram.setMat4("view", view);
+    g_ShaderProgram.setMat4("projection", persPrj);
 
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for (unsigned int i = 0; i < 10; i++)
+    {
+        auto t = MatrixMultiply4x4(MatrixTranslation4x4(
+                                           cubePositions[i][COMPONENT::X],
+                                           cubePositions[i][COMPONENT::Y],
+                                           cubePositions[i][COMPONENT::Z]),
+                                       identity);
+        float angle = 0.24f * i;
+        auto r = MatrixRotationAxis4x4(vec3f(std::array{1.0f, 0.3f, 0.5f}), angle);
+        auto model = MatrixMultiply4x4(r, t);
+
+        g_ShaderProgram.setMat4("model", model);
+        // 6 * 6
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_TRIANGLES, 0, 3);
 }
