@@ -26,7 +26,9 @@ template <typename T, size_t N, size_t Alignment = 16>
 struct alignas(Alignment) vec
 {
     T data[N];
-    vec() = default;
+    vec() {
+        memset(data, 0, sizeof(T) * N);
+    };
     vec(const vec &) = default;
     vec(vec &&) noexcept = default;
     vec &operator=(const vec &) = default;

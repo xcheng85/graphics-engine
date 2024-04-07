@@ -21,7 +21,10 @@ struct mat
 
     // row-major or column-major
     float data[N][N];
-    mat() = default;
+    mat()
+    {
+        memset(data, 0, sizeof(T) * N * N);
+    };
 
     mat(const mat &) = default;
     mat &operator=(const mat &) = default;
@@ -29,16 +32,27 @@ struct mat
     mat(mat &&) noexcept = default;
     mat &operator=(mat &&) noexcept = default;
 
-    mat(const std::array<T, N * N>& a)
+    mat(const std::array<T, N * N> &a)
     {
+        memset(data, 0, sizeof(T) * N * N);
         int dst{0};
         int r, c;
-        for(const auto v : a)
+        for (const auto v : a)
         {
             r = dst / N;
             c = dst % N;
             data[r][c] = v;
             ++dst;
+        }
+    }
+
+    // diagnol
+    mat(const T &v)
+    {
+        memset(data, 0, sizeof(T) * N * N);
+        for (size_t i = 0; i < N; ++i)
+        {
+            data[i][i] = v;
         }
     }
 
@@ -77,20 +91,22 @@ inline T *value_ptr(mat<T, N, Alignment> &v)
     return &(v.data[0][0]);
 }
 
+// 4 * 4
 using mat2x2f = mat<float, 2, 16>;
-// waste 8bytes
+
 using mat3x3f = mat<float, 3, 16>;
-// 32 bytes = 8 bytes (float) * 4
-using mat4x4f = mat<float, 4, 128>;
+
+// 16 * 4
+using mat4x4f = mat<float, 4, 64>;
 
 // affine transformation
 // linear transformation (S + R) + translation (T)
 // not commutative
 
 template <typename T>
-inline mat<T, 4, 128> MatrixMultiply4x4(const mat<T, 4, 128> &m1, const mat<T, 4, 128> &m2)
+inline mat<T, 4, sizeof(T) * 16> MatrixMultiply4x4(const mat<T, 4, sizeof(T) * 16> &m1, const mat<T, 4, sizeof(T) * 16> &m2)
 {
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
 
     for (int r = 0; r < 4; ++r)
     {
@@ -109,9 +125,9 @@ inline mat<T, 4, 128> MatrixMultiply4x4(const mat<T, 4, 128> &m1, const mat<T, 4
 }
 
 template <typename T>
-inline mat<T, 4, 128> MatrixScale(T sx, T sy, T sz)
+inline mat<T, 4, sizeof(T) * 16> MatrixScale4x4(T sx, T sy, T sz)
 {
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
     res.data[0][0] = sx;
     res.data[1][1] = sy;
     res.data[2][2] = sz;
@@ -120,9 +136,9 @@ inline mat<T, 4, 128> MatrixScale(T sx, T sy, T sz)
 }
 
 template <typename T>
-inline mat<T, 4, 128> MatrixTranslation(T tx, T ty, T tz)
+inline mat<T, 4, sizeof(T) * 16> MatrixTranslation4x4(T tx, T ty, T tz)
 {
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
     res.data[0][0] = 1.0f;
     res.data[1][1] = 1.0f;
     res.data[2][2] = 1.0f;
@@ -135,15 +151,15 @@ inline mat<T, 4, 128> MatrixTranslation(T tx, T ty, T tz)
 
 // to do: a 11-degree minimax approximation for sine; 10-degree for cosine.
 // opengl: counter-clock-wise
-template <typename T = float>
-inline mat<T, 4, 128> MatrixRotationX(float angleInRadian)
+template <typename T>
+inline mat<T, 4, sizeof(T) * 16> MatrixRotationX4x4(T angleInRadian)
 {
     auto fSinAngle = sin(angleInRadian);
     auto fCosAngle = cos(angleInRadian);
     // page 196: Fundamentals of Computer Graphics
     // page 42: Computer Graphics Programming in OpengGL with C++, 3/E
     // column-major convention
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
     res.data[0][0] = 1.0f;
     res.data[0][1] = 0.0f;
     res.data[0][2] = 0.0f;
@@ -167,13 +183,13 @@ inline mat<T, 4, 128> MatrixRotationX(float angleInRadian)
     return res;
 }
 
-template <typename T = float>
-inline mat<T, 4, 128> MatrixRotationY(float angleInRadian)
+template <typename T>
+inline mat<T, 4, sizeof(T) * 16> MatrixRotationY4x4(T angleInRadian)
 {
     auto fSinAngle = sin(angleInRadian);
     auto fCosAngle = cos(angleInRadian);
     // page 196: Fundamentals of Computer Graphics
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
     res.data[0][0] = fCosAngle;
     res.data[0][1] = 0.0f;
     res.data[0][2] = -fSinAngle;
@@ -197,12 +213,12 @@ inline mat<T, 4, 128> MatrixRotationY(float angleInRadian)
 }
 
 template <typename T = float>
-inline mat<T, 4, 128> MatrixRotationZ(float angleInRadian)
+inline mat<T, 4, sizeof(T) * 16> MatrixRotationZ4x4(T angleInRadian)
 {
     auto fSinAngle = sin(angleInRadian);
     auto fCosAngle = cos(angleInRadian);
 
-    mat<T, 4, 128> res;
+    mat<T, 4, sizeof(T) * 16> res;
     res.data[0][0] = fCosAngle;
     res.data[0][1] = fSinAngle;
     res.data[0][2] = 0;
@@ -231,7 +247,7 @@ inline mat<T, 4, 128> MatrixRotationZ(float angleInRadian)
 // 3. quaternion
 
 template <typename T>
-inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis(const vec<T, 3, sizeof(T) * 4>& axis, T angleInRadian)
+inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis4x4(const vec<T, 3, sizeof(T) * 4> &axis, T angleInRadian)
 {
     const auto c{cos(angleInRadian)};
     const auto s{sin(angleInRadian)};
@@ -286,9 +302,9 @@ inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis(const vec<T, 3, sizeof(T) * 
 // v = View * Model * V
 
 template <typename T = float>
-inline mat<T, 4, 128> ViewTransformLH(vec<T, 3, 32> pos, vec<T, 3, 32> target, vec<T, 3, 32> up)
+inline mat<T, 4, sizeof(T) * 16> ViewTransformLH(vec<T, 3, 32> pos, vec<T, 3, 32> target, vec<T, 3, 32> up)
 {
-    mat<T, 4, 128> m;
+    mat<T, 4, sizeof(T) * 16> m;
     //
     const auto z{target - pos};
     z.normalize();
@@ -330,10 +346,10 @@ inline mat<T, 4, 128> ViewTransformLH(vec<T, 3, 32> pos, vec<T, 3, 32> target, v
 
 // after the homo-divide, z is in [0, 1]
 template <typename T = float>
-inline mat<T, 4, 128> PerspectiveProjectionTransformLH(T near, T far, T vfov, T aspect)
+inline mat<T, 4, sizeof(T) * 16> PerspectiveProjectionTransformLH(T near, T far, T vfov, T aspect)
 {
     // page 53: Computer Graphics Programming in OpengGL with C++, 3/E
-    mat<T, 4, 128> m;
+    mat<T, 4, sizeof(T) * 16> m;
     // avoid implicit type conversion
     const T q = static_cast<T>(1) / (tan(vfov / static_cast<T>(2)));
     const T A = q / aspect;

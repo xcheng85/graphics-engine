@@ -184,7 +184,7 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    data = stbi_load("textures/giannis.jpeg", &width, &height, &numChannels, 0);
+    data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
     if (data)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -241,21 +241,21 @@ int main()
     });
     cout << identity << "\n";
     // auto type deduction
-    auto m2 = MatrixMultiply4x4(identity, MatrixScale(2.f, 3.f, 4.f));
+    auto m2 = MatrixMultiply4x4(identity, MatrixScale4x4(2.f, 3.f, 4.f));
     cout << m2 << "\n";
 
     // rotation on canonical basis
-    auto rotx = MatrixMultiply4x4(MatrixRotationX(0.5f), MatrixRotationX(-0.5f));
+    auto rotx = MatrixMultiply4x4(MatrixRotationX4x4(0.5f), MatrixRotationX4x4(-0.5f));
     cout << rotx << "\n";
-    auto roty = MatrixMultiply4x4(MatrixRotationY(0.5f), MatrixRotationY(-0.5f));
+    auto roty = MatrixMultiply4x4(MatrixRotationY4x4(0.5f), MatrixRotationY4x4(-0.5f));
     cout << roty << "\n";
-    auto rotz = MatrixMultiply4x4(MatrixRotationZ(0.5f), MatrixRotationZ(-0.5f));
+    auto rotz = MatrixMultiply4x4(MatrixRotationZ4x4(0.5f), MatrixRotationZ4x4(-0.5f));
     cout << rotz << "\n";
 
     {
         // validate rotation x
-        auto mat1 = MatrixRotationAxis(vec3f(std::array<float, 3>{1.f, 0, 0}), (float)M_PI / 4);
-        auto mat2 = MatrixRotationX(M_PI / 4);
+        auto mat1 = MatrixRotationAxis4x4(vec3f(std::array<float, 3>{1.f, 0, 0}), (float)M_PI / 4);
+        auto mat2 = MatrixRotationX4x4(M_PI / 4);
 
         cout << "mat1: \n"
              << mat1 << "\n";
@@ -313,6 +313,10 @@ void render()
     double timeValue = glfwGetTime();
     float intensity = static_cast<float>(sin(timeValue) / 2.0 + 0.5);
     g_ShaderProgram.setVec4("intensity", intensity, intensity, intensity, intensity);
+
+    auto transform = MatrixMultiply4x4(mat4x4f(1.0f), MatrixScale4x4(2.0f, 2.0f, 2.0f));
+    g_ShaderProgram.setMat4("transform", transform);
+
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_TRIANGLES, 0, 3);

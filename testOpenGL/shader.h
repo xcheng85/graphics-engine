@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 
+#include "matrix.h"
 using namespace std;
 class Shader
 {
@@ -72,6 +73,10 @@ public:
         glUseProgram(_shaderProgramId);
     }
 
+    inline auto programHandle() const {
+        return _shaderProgramId;
+    }
+
     void setBool(const std::string &name, bool value) const
     {
         glUniform1i(glGetUniformLocation(_shaderProgramId, name.c_str()), (int)value);
@@ -100,6 +105,13 @@ public:
     void setVec4(const std::string &name, float x, float y, float z, float w) const
     {
         glUniform4f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y, z, w);
+    }
+
+    void setMat4(const std::string &name, const mat4x4f &mat) const
+    {
+        // count 1, 
+        // no transpose
+        glUniformMatrix4fv(glGetUniformLocation(_shaderProgramId, name.c_str()), 1, GL_FALSE, &mat.data[0][0]);
     }
 
 private:
