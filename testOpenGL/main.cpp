@@ -1,11 +1,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
+#include <array>
 #include <iostream>
+#include <initializer_list>
+#include <functional>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include "shader.h"
+#include "vector.h"
+#include "matrix.h"
+#include "fp.h"
+#include "quaternion.h"
 
 void update();
 void render();
@@ -192,6 +199,73 @@ int main()
     g_ShaderProgram.activate();
     g_ShaderProgram.setInt("inTexture0", 0);
     g_ShaderProgram.setInt("inTexture1", 1);
+
+    vec3f pod{std::array<float, 3>{0.f, 1.f, 1.f}};
+    cout << pod << "\n";
+    pod.normalize();
+    cout << pod << "\n";
+    // vector arithmatic
+    pod = pod - std::array<float, 3>{-1.f, 1.f, 0.f};
+    cout << pod << "\n";
+    {
+        // testing fp
+        const auto cosVector = functor1<vec, float, 3, 16>::call(cos, pod);
+        cout << cosVector << "\n";
+    }
+    {
+        // testing quaternion
+        quatf quat = QuaternionFromAxisAngle(vec3f(std::array<float, 3>{0.f, 1.f, 0.f}), 0.588f);
+        const auto axis = RotationAxisFromQuaternion(quat);
+        const auto angle = RotationAngleFromQuaternion(quat);
+        cout << axis << "\n";
+        cout << angle << "\n";
+    }
+
+    mat4x4f identity(std::array<float, 4 * 4>{
+        1.f,
+        0.f,
+        0.f,
+        0.f,
+        0.f,
+        1.f,
+        0.f,
+        0.f,
+        0.f,
+        0.f,
+        1.f,
+        0.f,
+        0.f,
+        0.f,
+        0.f,
+        1.f,
+    });
+    cout << identity << "\n";
+    // auto type deduction
+    auto m2 = MatrixMultiply4x4(identity, MatrixScale(2.f, 3.f, 4.f));
+    cout << m2 << "\n";
+
+    // rotation on canonical basis
+    auto rotx = MatrixMultiply4x4(MatrixRotationX(0.5f), MatrixRotationX(-0.5f));
+    cout << rotx << "\n";
+    auto roty = MatrixMultiply4x4(MatrixRotationY(0.5f), MatrixRotationY(-0.5f));
+    cout << roty << "\n";
+    auto rotz = MatrixMultiply4x4(MatrixRotationZ(0.5f), MatrixRotationZ(-0.5f));
+    cout << rotz << "\n";
+
+    {
+        // validate rotation x
+        auto mat1 = MatrixRotationAxis(vec3f(std::array<float, 3>{1.f, 0, 0}), (float)M_PI / 4);
+        auto mat2 = MatrixRotationX(M_PI / 4);
+
+        cout << "mat1: \n"
+             << mat1 << "\n";
+        cout << "mat2: \n"
+             << mat2 << "\n";
+    }
+
+    // cout <<  std::invoke(std::cos, 0.f) << "\n";
+    // cout <<  cos(0.f) << "\n";
+    // [](){ print_num(42) };
 
     while (!glfwWindowShouldClose(window))
     {
