@@ -302,15 +302,14 @@ inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis4x4(const vec<T, 3, sizeof(T)
 // v = View * Model * V
 
 template <typename T = float>
-inline mat<T, 4, sizeof(T) * 16> ViewTransformLH(vec<T, 3, 32> pos, vec<T, 3, 32> target, vec<T, 3, 32> up)
+inline mat<T, 4, sizeof(T) * 16> ViewTransformLH4x4(const vec<T, 3, sizeof(T) * 4>& pos,
+                                                    const vec<T, 3, sizeof(T) * 4>& target,
+                                                    const vec<T, 3, sizeof(T) * 4>& up)
 {
     mat<T, 4, sizeof(T) * 16> m;
-    //
-    const auto z{target - pos};
-    z.normalize();
-
-    auto x{crossProduct(up, z)};
-    x.normalize();
+    // requires global version operator-
+    const auto z = normalize(target - pos);
+    auto x = normalize(crossProduct(up, z));
 
     // no need to normalize
     // s and f both normalized

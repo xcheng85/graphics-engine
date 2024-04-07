@@ -108,6 +108,17 @@ struct alignas(Alignment) vec
 };
 
 template <typename T, size_t N, size_t Alignment>
+inline vec<T, N, Alignment> operator-(const vec<T, N, Alignment> &v1, const vec<T, N, Alignment> &v2)
+{
+    vec<T, N, Alignment> res;
+    for (int i = 0; i < N; i++)
+    {
+        res.data[i] = v1.data[i] - v2.data[i];
+    }
+    return res;
+}
+
+template <typename T, size_t N, size_t Alignment>
 inline vec<T, N, Alignment> operator*(const vec<T, N, Alignment> &v, const T &s)
 {
     vec<T, N, Alignment> res;
@@ -123,10 +134,6 @@ inline vec<T, N, Alignment> normalize(const vec<T, N, Alignment> &v)
 {
     vec<T, N, Alignment> res;
     auto vectorlength = v.vectorLength();
-    if (vectorlength > 0)
-    {
-        vectorlength = 1.0f / vectorlength;
-    }
     for (size_t i{0}; i < N; ++i)
     {
         res.data[i] = v.data[i] / vectorlength;
@@ -145,16 +152,16 @@ inline double dotProduct(const vec<T, N, Alignment> &v1, const vec<T, N, Alignme
     return res;
 }
 
-template <typename T, size_t Alignment>
-inline vec<T, 3, Alignment> crossProduct(const vec<T, 3, Alignment> &v1, const vec<T, 3, Alignment> &v2) noexcept
+template <typename T>
+inline vec<T, 3, sizeof(T) * 4> crossProduct(const vec<T, 3, sizeof(T) * 4> &v1, const vec<T, 3, sizeof(T) * 4> &v2) noexcept
 {
     // similar to cramer's rule
     // [ V1.y*V2.z - V1.z*V2.y, V1.z*V2.x - V1.x*V2.z, V1.x*V2.y - V1.y*V2.x ]
-    return vec<T, 3, Alignment>{
+    return vec<T, 3, sizeof(T) * 4>(std::array{
         v1[COMPONENT::Y] * v2[COMPONENT::Z] - v1[COMPONENT::Z] * v2[COMPONENT::Y],
         v1[COMPONENT::Z] * v2[COMPONENT::X] - v1[COMPONENT::X] * v2[COMPONENT::Z],
         v1[COMPONENT::X] * v2[COMPONENT::Y] - v1[COMPONENT::Y] * v2[COMPONENT::X],
-    };
+    });
 }
 
 template <typename T, size_t N, size_t Alignment>

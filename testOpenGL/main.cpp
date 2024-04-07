@@ -339,7 +339,16 @@ void render()
 
     mat4x4f identity(1.0f);
     // +20.f, move away, zoom out
-    auto view = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
+    auto view1 = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
+    cout << view1 << "\n";
+
+    vec3f cameraPos(std::array{0.0f, 0.0f, 20.f});
+    vec3f cameraLookatTarget(std::array{0.0f, 0.0f, 0.f});
+    vec3f cameraWorldUp(std::array{1.0f, 0.0f, 0.f});
+    auto view = ViewTransformLH4x4(cameraPos, cameraLookatTarget, cameraWorldUp);
+
+    cout << view << "\n";
+
     auto persPrj = PerspectiveProjectionTransformLH(0.1f, 100.0f, 0.5f, (float)SCR_WIDTH / (float)SCR_HEIGHT);
     g_ShaderProgram.setMat4("view", view);
     g_ShaderProgram.setMat4("projection", persPrj);
