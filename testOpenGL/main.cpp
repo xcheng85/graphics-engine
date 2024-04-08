@@ -233,6 +233,17 @@ int main()
         // testing fp
         const auto cosVector = functor1<vec, float, 3, 16>::call(cos, pod);
         cout << cosVector << "\n";
+
+        // testing fp with lamda
+        const auto t = functor1_lamda<vec, float, 2, 8>::call([](auto v)
+                                                              {
+            cout << v << "\n";
+            return v; },
+                                                              vec2f(std::array{
+                                                                  1.0f, 2.0f}));
+        cout << t << "\n";
+        cout << rad(vec3f(std::array{0.0f, 90.0f, 180.f})) << "\n";
+        cout << rad(-90.f) << "\n";
     }
     {
         // testing quaternion
@@ -357,10 +368,10 @@ void render()
     for (unsigned int i = 0; i < 10; i++)
     {
         auto t = MatrixMultiply4x4(MatrixTranslation4x4(
-                                           cubePositions[i][COMPONENT::X],
-                                           cubePositions[i][COMPONENT::Y],
-                                           cubePositions[i][COMPONENT::Z]),
-                                       identity);
+                                       cubePositions[i][COMPONENT::X],
+                                       cubePositions[i][COMPONENT::Y],
+                                       cubePositions[i][COMPONENT::Z]),
+                                   identity);
         float angle = 0.24f * i;
         auto r = MatrixRotationAxis4x4(vec3f(std::array{1.0f, 0.3f, 0.5f}), angle);
         auto model = MatrixMultiply4x4(r, t);
