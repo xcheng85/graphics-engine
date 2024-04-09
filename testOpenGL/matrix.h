@@ -291,7 +291,7 @@ inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis4x4(const vec<T, 3, sizeof(T)
 // // camera/view transformation, v in mvp
 // // 1. world position of camera
 // // 2. world position of target point
-// // 3. world up vector
+// // 3. world camera up vector (not necessarily equal canonical world up vector) 
 
 // // basically create new orthogonal basis
 // f: z in camera space

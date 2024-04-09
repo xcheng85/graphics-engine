@@ -13,6 +13,7 @@
 #include "matrix.h"
 #include "fp.h"
 #include "quaternion.h"
+#include "camera.h"
 
 void update();
 void render();
@@ -100,6 +101,47 @@ Shader g_ShaderProgram;
 unsigned int VAO;
 unsigned int texture1, texture2;
 
+// camera controller
+Camera camera(
+    vec3f(std::array{0.0f, 0.0f, 20.0f}), // pos
+    vec3f(std::array{0.0f, 0.0f, -1.0f}), // target -z
+    vec3f(std::array{0.0f, 1.0f, 0.0f}),  // initial world up
+    0.0f,                                 // initial pitch
+    -90.f                                 // initial yaw
+);
+
+float g_dt{0.0f};
+float g_lastFrameTime{0.0f};
+
+static void errorCB(int error, const char *description)
+{
+    std::cerr << std::format("Error: {}\n", description);
+}
+
+static void keyCB(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+    // if (key == GLFW_KEY_W && action == GLFW_PRESS)
+    // {
+    //     camera.handleKeyboardEvent(Camera::CameraActionType::FORWARD, g_dt);
+    // }
+    // if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    // {
+    //     camera.handleKeyboardEvent(Camera::CameraActionType::BACKWARD, g_dt);
+    // }
+    // if (key == GLFW_KEY_A && action == GLFW_PRESS)
+    // {
+    //     camera.handleKeyboardEvent(Camera::CameraActionType::LEFT, g_dt);
+    // }
+    // if (key == GLFW_KEY_D && action == GLFW_PRESS)
+    // {
+    //     camera.handleKeyboardEvent(Camera::CameraActionType::RIGHT, g_dt);
+    // }
+}
+
 int main()
 {
     glfwInit();
@@ -119,6 +161,8 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSetErrorCallback(errorCB);
+    glfwSetKeyCallback(window, keyCB);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -302,6 +346,9 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        float t = static_cast<float>(glfwGetTime());
+        g_dt = t - g_lastFrameTime;
+        g_lastFrameTime = t;
         processInput(window);
         update();
         render();
@@ -314,12 +361,19 @@ int main()
     return 0;
 }
 
+// continous
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
         glfwSetWindowShouldClose(window, true);
-    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.handleKeyboardEvent(Camera::CameraActionType::FORWARD, g_dt);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.handleKeyboardEvent(Camera::CameraActionType::BACKWARD, g_dt);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.handleKeyboardEvent(Camera::CameraActionType::LEFT, g_dt);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.handleKeyboardEvent(Camera::CameraActionType::RIGHT, g_dt);
 }
 
 // resize ?
@@ -349,15 +403,18 @@ void render()
     g_ShaderProgram.setVec4("intensity", intensity, intensity, intensity, intensity);
 
     mat4x4f identity(1.0f);
-    // +20.f, move away, zoom out
-    auto view1 = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
-    cout << view1 << "\n";
 
-    vec3f cameraPos(std::array{0.0f, 0.0f, 20.f});
-    vec3f cameraLookatTarget(std::array{0.0f, 0.0f, 0.f});
-    vec3f cameraWorldUp(std::array{1.0f, 0.0f, 0.f});
-    auto view = ViewTransformLH4x4(cameraPos, cameraLookatTarget, cameraWorldUp);
+    // // +20.f, move away, zoom out
+    // auto view1 = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
+    // cout << view1 << "\n";
 
+    // vec3f cameraPos(std::array{0.0f, 0.0f, 20.f});
+    // vec3f cameraLookatTarget(std::array{0.0f, 0.0f, 0.f});
+    // vec3f cameraWorldUp(std::array{1.0f, 0.0f, 0.f});
+    // auto view = ViewTransformLH4x4(cameraPos, cameraLookatTarget, cameraWorldUp);
+    // cout << view << "\n";
+
+    auto view = camera.viewTransformLH();
     cout << view << "\n";
 
     auto persPrj = PerspectiveProjectionTransformLH(0.1f, 100.0f, 0.5f, (float)SCR_WIDTH / (float)SCR_HEIGHT);

@@ -59,7 +59,25 @@ struct alignas(Alignment) vec
         return data[index];
     }
 
-    vec &operator-(vec &&other)
+    vec &operator-(const vec &other)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            data[i] -= other.data[i];
+        }
+        return *this;
+    }
+
+    vec &operator+=(const vec &other)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            data[i] += other.data[i];
+        }
+        return *this;
+    }
+
+    vec &operator-=(const vec &other)
     {
         for (int i = 0; i < N; i++)
         {
@@ -106,6 +124,17 @@ struct alignas(Alignment) vec
         data[3] *= vectorlength;
     }
 };
+
+template <typename T, size_t N, size_t Alignment>
+inline vec<T, N, Alignment> operator+(const vec<T, N, Alignment> &v1, const vec<T, N, Alignment> &v2)
+{
+    vec<T, N, Alignment> res;
+    for (int i = 0; i < N; i++)
+    {
+        res.data[i] = v1.data[i] + v2.data[i];
+    }
+    return res;
+}
 
 template <typename T, size_t N, size_t Alignment>
 inline vec<T, N, Alignment> operator-(const vec<T, N, Alignment> &v1, const vec<T, N, Alignment> &v2)
