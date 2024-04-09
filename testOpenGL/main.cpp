@@ -112,6 +112,8 @@ Camera camera(
 
 float g_dt{0.0f};
 float g_lastFrameTime{0.0f};
+float g_firstMouseCursor{true};
+float g_lastMouseCursorX, g_lastMouseCursorY;
 
 static void errorCB(int error, const char *description)
 {
@@ -142,6 +144,28 @@ static void keyCB(GLFWwindow *window, int key, int scancode, int action, int mod
     // }
 }
 
+// relative to the left-upper corner
+void mouseCursorCB(GLFWwindow *window, double newXPos, double newYPos)
+{
+    float x = static_cast<float>(newXPos);
+    float y = static_cast<float>(newYPos);
+
+    if (g_firstMouseCursor)
+    {
+        g_lastMouseCursorX = x;
+        g_lastMouseCursorY = y;
+        g_firstMouseCursor = false;
+    }
+
+    float dx = x - g_lastMouseCursorX;
+    float dy = g_lastMouseCursorY - y; // screen space is opposite to camera space
+
+    g_lastMouseCursorX = x;
+    g_lastMouseCursorY = y;
+
+    camera.handleMouseCursorEvent(dx, dy);
+}
+
 int main()
 {
     glfwInit();
@@ -163,6 +187,7 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSetErrorCallback(errorCB);
     glfwSetKeyCallback(window, keyCB);
+    glfwSetCursorPosCallback(window, mouseCursorCB);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))

@@ -54,6 +54,18 @@ public:
             _pos += _worldCameraRight * v;
     }
 
+    void handleMouseCursorEvent(float dx, float dy)
+    {
+        dx *= _mouseSensitivity;
+        dy *= _mouseSensitivity;
+
+        _yaw += dx;
+        _pitch += dy;
+
+        // rotation occurs, rebuild the camera orthogonal basis
+        rebuild();
+    }
+
 private:
     void rebuild()
     {
@@ -91,4 +103,5 @@ private:
     float _vFov;
 
     float _speed{1.8f};
+    float _mouseSensitivity{0.05f};
 };
