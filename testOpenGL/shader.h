@@ -7,136 +7,107 @@
 #include <iostream>
 
 #include "matrix.h"
+
 using namespace std;
+
 class Shader
 {
-    enum ShaderObjectType : int
-    {
-        VERTEX_SHADER,
-        FRAGMENT_SHADER,
-        SHADER_PROGRAM
-    };
-
 public:
     Shader() = default;
-    Shader(const std::string& vsPath, const std::string& fsPath)
+    Shader(const std::string &filePath)
     {
-        // std::string vs;
-        // std::string fs;
-
-        // // RAII
-        // std::ifstream vsFile{vsPath};
-        // std::ifstream fsFile{fsPath};
-
-        // try
-        // {
-        //     if (vsFile.fail() || fsFile.fail())
-        //     {
-        //         throw std::ifstream::failure("fail to read shaderfile");
-        //     }
-        //     getline(vsFile, vs, '\0');
-        //     getline(fsFile, fs, '\0');
-
-        //     printShaderSource(vs.c_str());
-        //     // cout << vs << "\n";
-        //     // cout << fs << "\n";
-        //     while (vs.find("#include ") != vs.npos)
-        //     {
-        //         const auto pos = vs.find("#include ");
-        //         const auto p1 = vs.find('<', pos);
-        //         const auto p2 = vs.find('>', pos);
-        //         if (p1 == vs.npos || p2 == vs.npos || p2 <= p1)
-        //         {
-        //             std::cerr << "error parsing #include\n";
-        //             assert(false);
-        //         }
-        //         // header name
-        //         const std::string headerName = code.substr(p1 + 1, p2 - p1 - 1);
-        //         const std::string include = readShaderFile(name.c_str());
-        //         code.replace(pos, p2 - pos + 1, include.c_str());
-        //     }
-        // }
-        // catch (std::ifstream::failure &e)
-        // {
-        //     std::cout << "Shader ctor: " << e.what() << std::endl;
-        // }
-        std::string vs = parseShaderFile(vsPath);
-        std::string fs = parseShaderFile(fsPath);
-        unsigned int vsHandle, fsHandle;
-        auto vsPtr = vs.c_str(), fsPtr = fs.c_str();
-
-        vsHandle = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vsHandle, 1, &vsPtr, NULL);
-        glCompileShader(vsHandle);
-        checkCompileErrors(vsHandle, ShaderObjectType::VERTEX_SHADER);
-
-        fsHandle = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fsHandle, 1, &fsPtr, NULL);
-        glCompileShader(fsHandle);
-        checkCompileErrors(fsHandle, ShaderObjectType::FRAGMENT_SHADER);
-
-        _shaderProgramId = glCreateProgram();
-        glAttachShader(_shaderProgramId, vsHandle);
-        glAttachShader(_shaderProgramId, fsHandle);
-        glLinkProgram(_shaderProgramId);
-        checkCompileErrors(_shaderProgramId, ShaderObjectType::SHADER_PROGRAM);
-
-        glDeleteShader(vsHandle);
-        glDeleteShader(fsHandle);
+        const auto shaderText = parseShaderFile(filePath);
+        // 
+        const auto shaderTextPtr = shaderText.c_str();
+        const auto shaderType = parseShaderType(filePath);
+        _shaderProgramHandle = glCreateShaderProgramv(shaderType, 1, &shaderTextPtr);
+        checkCompileErrors(_shaderProgramHandle);
     }
     ~Shader()
     {
-    }
-    void activate() const
-    {
-        glUseProgram(_shaderProgramId);
+        // glDeleteProgram(_shaderProgramHandle);
     }
 
     inline auto programHandle() const
     {
-        return _shaderProgramId;
+        return _shaderProgramHandle;
     }
 
-    void setBool(const std::string &name, bool value) const
-    {
-        glUniform1i(glGetUniformLocation(_shaderProgramId, name.c_str()), (int)value);
-    }
+    // void setBool(const std::string &name, bool value) const
+    // {
+    //     glUniform1i(glGetUniformLocation(_shaderProgramId, name.c_str()), (int)value);
+    // }
 
-    void setInt(const std::string &name, int value) const
-    {
-        glUniform1i(glGetUniformLocation(_shaderProgramId, name.c_str()), value);
-    }
+    // void setInt(const std::string &name, int value) const
+    // {
+    //     glUniform1i(glGetUniformLocation(_shaderProgramId, name.c_str()), value);
+    // }
 
-    void setFloat(const std::string &name, float value) const
-    {
-        glUniform1f(glGetUniformLocation(_shaderProgramId, name.c_str()), value);
-    }
+    // void setFloat(const std::string &name, float value) const
+    // {
+    //     glUniform1f(glGetUniformLocation(_shaderProgramId, name.c_str()), value);
+    // }
 
-    void setVec2(const std::string &name, float x, float y) const
-    {
-        glUniform2f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y);
-    }
+    // void setVec2(const std::string &name, float x, float y) const
+    // {
+    //     glUniform2f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y);
+    // }
 
-    void setVec3(const std::string &name, float x, float y, float z) const
-    {
-        glUniform3f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y, z);
-    }
+    // void setVec3(const std::string &name, float x, float y, float z) const
+    // {
+    //     glUniform3f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y, z);
+    // }
 
-    void setVec4(const std::string &name, float x, float y, float z, float w) const
-    {
-        glUniform4f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y, z, w);
-    }
+    // void setVec4(const std::string &name, float x, float y, float z, float w) const
+    // {
+    //     glUniform4f(glGetUniformLocation(_shaderProgramId, name.c_str()), x, y, z, w);
+    // }
 
-    void setMat4(const std::string &name, const mat4x4f &mat) const
-    {
-        // count 1,
-        // no transpose
-        glUniformMatrix4fv(glGetUniformLocation(_shaderProgramId, name.c_str()), 1, GL_FALSE, &mat.data[0][0]);
-    }
+    // void setMat4(const std::string &name, const mat4x4f &mat) const
+    // {
+    //     // count 1,
+    //     // no transpose
+    //     glUniformMatrix4fv(glGetUniformLocation(_shaderProgramId, name.c_str()), 1, GL_FALSE, &mat.data[0][0]);
+    // }
 
 private:
+    GLenum parseShaderType(const std::string &filePath)
+    {
+        if (filePath.ends_with(".vert"))
+        {
+            return GL_VERTEX_SHADER;
+        }
+
+        if (filePath.ends_with(".frag"))
+        {
+            return GL_FRAGMENT_SHADER;
+        }
+
+        if (filePath.ends_with(".geom"))
+        {
+            return GL_GEOMETRY_SHADER;
+        }
+
+        if (filePath.ends_with(".ctrl"))
+        {
+            return GL_TESS_CONTROL_SHADER;
+        }
+
+        if (filePath.ends_with(".eval"))
+        {
+            return GL_TESS_EVALUATION_SHADER;
+        }
+
+        if (filePath.ends_with(".comp"))
+        {
+            return GL_COMPUTE_SHADER;
+        }
+        assert(false);
+        return 0;
+    }
+
     // recursive due to unlimited #include possibility
-    std::string parseShaderFile(const std::string& filePath)
+    std::string parseShaderFile(const std::string &filePath)
     {
         std::string shaderText;
         // RAII
@@ -148,7 +119,8 @@ private:
                 throw std::ifstream::failure("fail to read shaderfile");
             }
             getline(fs, shaderText, '\0');
-            printShaderSource(shaderText.c_str());
+            // printShaderSource(shaderText.c_str());
+            cout << shaderText << "\n";
             while (shaderText.find("#include ") != shaderText.npos)
             {
                 const auto pos = shaderText.find("#include ");
@@ -172,30 +144,28 @@ private:
         return shaderText;
     }
 
-    void checkCompileErrors(GLuint shaderHandle, ShaderObjectType type)
+    void checkCompileErrors(GLuint shaderHandle)
     {
         GLint success;
         GLchar infoLog[1024];
-        if (type != ShaderObjectType::SHADER_PROGRAM)
+
+        glGetProgramiv(shaderHandle, GL_LINK_STATUS, &success);
+        if (!success)
         {
-            glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &success);
-            if (!success)
-            {
-                glGetShaderInfoLog(shaderHandle, 1024, NULL, infoLog);
-                std::cerr << "Error: " << type << "\n"
-                          << infoLog << "\n";
-            }
+            glGetProgramInfoLog(shaderHandle, 1024, NULL, infoLog);
+            std::cerr << infoLog << "\n";
         }
-        else
-        {
-            glGetProgramiv(shaderHandle, GL_LINK_STATUS, &success);
-            if (!success)
-            {
-                glGetProgramInfoLog(shaderHandle, 1024, NULL, infoLog);
-                std::cerr << "Error: " << type << "\n"
-                          << infoLog << "\n";
-            }
-        }
+
+        // else
+        // {
+        //     glGetProgramiv(shaderHandle, GL_LINK_STATUS, &success);
+        //     if (!success)
+        //     {
+        //         glGetProgramInfoLog(shaderHandle, 1024, NULL, infoLog);
+        //         std::cerr << "Error: " << type << "\n"
+        //                   << infoLog << "\n";
+        //     }
+        // }
     }
 
     void printShaderSource(const char *shader)
@@ -219,5 +189,5 @@ private:
         cout << "\n";
     }
 
-    GLuint _shaderProgramId;
+    GLuint _shaderProgramHandle;
 };

@@ -8,7 +8,8 @@ find_package(glfw3 3.3 REQUIRED)
 file(GLOB_RECURSE SRC_FILES *.cpp CMAKE_CONFIGURE_DEPENDS)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
-target_link_libraries(${PROJECT_NAME} glfw3 glad profiler tcmalloc)
+#target_link_libraries(${PROJECT_NAME} glfw3 glad profiler tcmalloc)
+target_link_libraries(${PROJECT_NAME} glfw3 glad)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 
 set(copy_source_dir "${CMAKE_SOURCE_DIR}/data/")
