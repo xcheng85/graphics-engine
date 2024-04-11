@@ -103,5 +103,5 @@ private:
     float _vFov;
 
     float _speed{1.8f};
-    float _mouseSensitivity{0.05f};
+    float _mouseSensitivity{0.02f};
 };

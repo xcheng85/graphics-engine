@@ -9,6 +9,7 @@
 #include <iostream>
 #include <format>
 #include "vector.h"
+#include <cstring> // memset
 
 template <typename T, size_t N, size_t Alignment>
 struct mat

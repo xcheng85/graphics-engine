@@ -62,7 +62,7 @@ inline quaternion<T> Inverse(const quaternion<T> &q)
 template <float_or_double_type T>
 inline quaternion<T> QuaternionFromAxisAngle(const vec<T, 3, sizeof(T) * 4> &axis, const T &angle)
 {
-    return quaternion<T>(axis * sin(angle * static_cast<T>(0.5)), cos(angle * static_cast<T>(0.5)));
+    return quaternion<T>(axis * static_cast<T>(sin(angle * static_cast<T>(0.5))), cos(angle * static_cast<T>(0.5)));
 }
 
 // build quat from euler angles

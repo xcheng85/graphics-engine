@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstring> // memset
 #include <cmath> // sin, cos
 #include <cstdint>
 #include <initializer_list>

@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
+#include <assert.h>
 #include "matrix.h"
 
 using namespace std;

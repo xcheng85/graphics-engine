@@ -7,9 +7,6 @@
 #include <functional>
 #include <memory>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include "vector.h"
 #include "matrix.h"
 #include "fp.h"
@@ -17,6 +14,7 @@
 #include "camera.h"
 #include "shader.h"
 #include "pipeline.h"
+#include "texture.h"
 
 void update();
 void render();
@@ -101,8 +99,9 @@ vec3f cubePositions[] = {
 
 // GLuint shaderProgramHandle;
 std::unique_ptr<Pipeline> g_ShaderProgramPipeline;
+std::unique_ptr<Texture> g_texture2d_1;
+GLuint g_bindlessHandleUniformBufferHandle;
 unsigned int VAO;
-unsigned int texture1, texture2;
 
 // camera controller
 Camera camera(
@@ -367,47 +366,67 @@ int main()
     // no data to copy during init
     glNamedBufferStorage(g_perFrameDataBufferHandle, g_perFrameDataBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
     // buffer is genric, here bind it to unifor buffer, tell driver the usage of this buffer.
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize);
+    // ub slot: 0
+    // here basically bind the full range a buffer, glBindBufferRange is not useful
+    // glBindBufferRange(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
+		   
+    // // textures
+    g_texture2d_1 = make_unique<Texture>(
+        GL_TEXTURE_2D,
+        "textures/dame.jpeg");
 
-    // textures
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // bindless uint64_t handle
+    const auto bindlessTextureHandle = g_texture2d_1->getBindlessHandle();
+    glCreateBuffers(1, &g_bindlessHandleUniformBufferHandle);
+    glNamedBufferStorage(g_bindlessHandleUniformBufferHandle,
+                         sizeof(bindlessTextureHandle),
+                         &bindlessTextureHandle, 0);
+    // ub slot: 1
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_bindlessHandleUniformBufferHandle);
 
-    int width, height, numChannels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture\n";
-    }
-    stbi_image_free(data);
+    // glBindBuffer(GL_UNIFORM_BUFFER, BufferName[buffer::MATERIAL]);
+    // glBufferStorage(GL_UNIFORM_BUFFER, sizeof(TextureHandle), &TextureHandle, 0);
+    // glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
+    // glGenTextures(1, &texture1);
+    // glBindTexture(GL_TEXTURE_2D, texture1);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // int width, height, numChannels;
+    // stbi_set_flip_vertically_on_load(true);
+    // unsigned char *data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
+    // if (data)
+    // {
+    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //     glGenerateMipmap(GL_TEXTURE_2D);
+    // }
+    // else
+    // {
+    //     std::cout << "Failed to load texture\n";
+    // }
+    // stbi_image_free(data);
+
+    // glGenTextures(1, &texture2);
+    // glBindTexture(GL_TEXTURE_2D, texture2);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
+    // if (data)
+    // {
+    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //     glGenerateMipmap(GL_TEXTURE_2D);
+    // }
+    // else
+    // {
+    //     std::cout << "Failed to load texture" << std::endl;
+    // }
+    // stbi_image_free(data);
 
     // g_ShaderProgram.activate();
     // g_ShaderProgram.setInt("inTexture0", 0);
@@ -558,7 +577,7 @@ void render()
 
     auto view = camera.viewTransformLH();
     auto persPrj = PerspectiveProjectionTransformLH(0.1f, 100.0f, 0.5f, (float)SCR_WIDTH / (float)SCR_HEIGHT);
-    
+
     // left-hand
     auto vp = MatrixMultiply4x4(view, persPrj);
 
