@@ -1,4 +1,5 @@
-#version 460 core
+#include <shaders/common.h>
+
 out vec4 FragColor;
 
 uniform vec4 intensity;
