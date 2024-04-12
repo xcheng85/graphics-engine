@@ -111,6 +111,16 @@ const GLsizeiptr g_perFrameDataBufferSize = sizeof(vec3f) * NUM_CUBES;
 GLuint g_instancingOffsetBufferHandle;
 const GLsizeiptr g_instancingOffsetBufferSize = sizeof(PerFrameData);
 
+// indirect-draw buffer handle
+GLuint g_indirectDrawBufferHandle;
+struct DrawArraysIndirectCommand
+{
+    GLuint count;
+    GLuint instanceCount;
+    GLuint first;
+    GLuint baseInstance;
+};
+
 float g_dt{0.0f};
 float g_lastFrameTime{0.0f};
 float g_firstMouseCursor{true};
@@ -377,9 +387,19 @@ int main()
     glNamedBufferStorage(g_bindlessHandleUniformBufferHandle,
                          sizeof(bindlessTextureHandle),
                          &bindlessTextureHandle, 0);
-    // glBindBuffer(GL_UNIFORM_BUFFER, BufferName[buffer::MATERIAL]);
-    // glBufferStorage(GL_UNIFORM_BUFFER, sizeof(TextureHandle), &TextureHandle, 0);
-    // glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    // indirect draw
+    // static and immutable
+    // reference: glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, NUM_CUBES, 0);
+    DrawArraysIndirectCommand drawNoIndex{
+        .count = 36,
+        .instanceCount = NUM_CUBES,
+        .first = 0,
+        .baseInstance = 0,
+    };
+    glCreateBuffers(1, &g_indirectDrawBufferHandle);
+    glNamedBufferStorage(g_indirectDrawBufferHandle,
+                         sizeof(DrawArraysIndirectCommand), &drawNoIndex, 0);
 
     vec3f pod{std::array<float, 3>{0.f, 1.f, 1.f}};
     cout << pod << "\n";
@@ -479,6 +499,9 @@ int main()
         glUnmapBuffer(GL_UNIFORM_BUFFER);
         g_perFramePersistentPtr = nullptr;
     }
+    glDeleteBuffers(1, &g_perFrameDataBufferHandle);
+    glDeleteBuffers(1, &g_bindlessHandleUniformBufferHandle);
+    glDeleteBuffers(1, &g_instancingOffsetBufferHandle);
 
     glfwTerminate();
     return 0;
@@ -582,8 +605,10 @@ void render()
     glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_bindlessHandleUniformBufferHandle);
     // cube position buffer
     glBindBufferBase(GL_UNIFORM_BUFFER, 2, g_instancingOffsetBufferHandle);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, NUM_CUBES);
-
+    // glDrawArraysInstanced(GL_TRIANGLES, 0, 36, NUM_CUBES);
+    // glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, NUM_CUBES, 0);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, g_indirectDrawBufferHandle);
+    glDrawArraysIndirect(GL_TRIANGLES, 0);
     // for (unsigned int i = 0; i < NUM_CUBES; ++i)
     // {
     //     auto t = MatrixMultiply4x4(MatrixTranslation4x4(
