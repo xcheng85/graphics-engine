@@ -1,3 +1,42 @@
+## Buffer Object in Modern OpenGL
+Pure in-OpenGL buffers: In-direct rendering, transform feedback, compute shader
+
+static buffer: 
+//static buffer: set flags​ to 0 and use data​ as the initial upload
+
+immutable vs mutable storage
+
+## Update Buffer method1: gl*BufferSubData 
+can be wasteful in performance
+1. bind
+2. gl*BufferSubData
+3. unbind
+
+## Update Buffer method2: mapping
+get a pointer to the buffer object's storage and write directly to it.
+1. bind
+2. map
+3. unmap
+
+## Buffer for multi-draw
+multiple meshes into one buffer
+
+## Buffer for Indrect Rendering
+Binding target for buffer: GL_DRAW_INDIRECT_BUFFER
+
+## Multi-draw + Indrect
+
+who fills the buffer ? 
+
+This could be a Compute Shader, a specially designed Geometry Shader coupled with Transform Feedback, or an OpenCL/CUDA process.
+
+
+The indirect rendering functions take their data from the buffer currently bound to the GL_DRAW_INDIRECT_BUFFER binding
+
+Indirect rendering
+
+
+
 ## No-DSA Texture
 ```shell
 #1). create 2). bind 3). allocate 4). upload

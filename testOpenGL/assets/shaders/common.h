@@ -5,3 +5,5 @@
 #define FRAG_COLOR 0
 #define PER_FRAME_DATA 0
 #define MATERIAL 1
+
+#define INSTANCING 2

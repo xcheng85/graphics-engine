@@ -9,6 +9,10 @@ layout(std140, binding = PER_FRAME_DATA) uniform PerFrameData
 	uniform mat4 mvp;
 };
 
+layout(std140, binding = INSTANCING) uniform InstancingData {
+    uniform vec3 offsets[10];
+};
+
 out vec3 outColor;
 out vec2 outTexCoord;
 
@@ -24,5 +28,5 @@ void main()
     outTexCoord = aTexCoord;
     // mat4 transform1 = mat4(2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     // left-hand
-    gl_Position = mvp * vec4(aPos, 1.0f);
+    gl_Position = mvp * vec4(aPos + offsets[gl_InstanceID], 1.0f);
 }

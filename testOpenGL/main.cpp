@@ -16,6 +16,8 @@
 #include "pipeline.h"
 #include "texture.h"
 
+// forward declaration
+bool checkExtensitions();
 void update();
 void render();
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -23,22 +25,6 @@ void processInput(GLFWwindow *window);
 
 constexpr uint16_t SCR_WIDTH = 1920;
 constexpr uint16_t SCR_HEIGHT = 1080;
-constexpr char *vertexShaderSource =
-    "#version 460 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-constexpr char *fragmentShaderSource =
-    "#version 460 core\n"
-    "out vec4 FragColor;\n"
-    "uniform vec4 ourColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = ourColor;\n"
-    "}\n\0";
-
 // local space
 // pos + color + tex
 constexpr float vertices[] = {
@@ -85,7 +71,8 @@ constexpr float vertices[] = {
     -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
 // world position of center of each cube
-vec3f cubePositions[] = {
+constexpr static int NUM_CUBES = 10;
+vec3f cubePositions[NUM_CUBES] = {
     vec3f(std::array{0.0f, 0.0f, 0.0f}),
     vec3f(std::array{2.0f, 5.0f, -15.0f}),
     vec3f(std::array{-1.5f, -2.2f, -2.5f}),
@@ -117,7 +104,10 @@ struct PerFrameData
     mat4x4f mvp;
 };
 GLuint g_perFrameDataBufferHandle;
-const GLsizeiptr g_perFrameDataBufferSize = sizeof(PerFrameData);
+const GLsizeiptr g_perFrameDataBufferSize = sizeof(vec3f) * NUM_CUBES;
+
+GLuint g_instancingOffsetBufferHandle;
+const GLsizeiptr g_instancingOffsetBufferSize = sizeof(PerFrameData);
 
 float g_dt{0.0f};
 float g_lastFrameTime{0.0f};
@@ -294,7 +284,6 @@ int main()
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-
     GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Test OpenGL", NULL, NULL);
     if (window == NULL)
     {
@@ -313,7 +302,7 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
+    assert(checkExtensitions());
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(GLDebugMessageCallback, nullptr);
@@ -339,9 +328,6 @@ int main()
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-    // glEnableVertexAttribArray(0);
-
     // interleave
     // two vertex attributes
     // position attribute: slot 0
@@ -365,12 +351,12 @@ int main()
     glCreateBuffers(1, &g_perFrameDataBufferHandle);
     // no data to copy during init
     glNamedBufferStorage(g_perFrameDataBufferHandle, g_perFrameDataBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
-    // buffer is genric, here bind it to unifor buffer, tell driver the usage of this buffer.
-    // ub slot: 0
-    // here basically bind the full range a buffer, glBindBufferRange is not useful
-    // glBindBufferRange(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
-		   
+
+    glCreateBuffers(1, &g_instancingOffsetBufferHandle);
+    // static and immutable
+    glNamedBufferStorage(g_instancingOffsetBufferHandle, 
+        g_instancingOffsetBufferSize, &cubePositions[0], 0);
+
     // // textures
     g_texture2d_1 = make_unique<Texture>(
         GL_TEXTURE_2D,
@@ -379,58 +365,14 @@ int main()
     // bindless uint64_t handle
     const auto bindlessTextureHandle = g_texture2d_1->getBindlessHandle();
     glCreateBuffers(1, &g_bindlessHandleUniformBufferHandle);
+    //static buffer: set flags​ to 0 and use data​ as the initial upload
+    // immutable storage
     glNamedBufferStorage(g_bindlessHandleUniformBufferHandle,
                          sizeof(bindlessTextureHandle),
                          &bindlessTextureHandle, 0);
-    // ub slot: 1
-    glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_bindlessHandleUniformBufferHandle);
-
     // glBindBuffer(GL_UNIFORM_BUFFER, BufferName[buffer::MATERIAL]);
     // glBufferStorage(GL_UNIFORM_BUFFER, sizeof(TextureHandle), &TextureHandle, 0);
     // glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    // glGenTextures(1, &texture1);
-    // glBindTexture(GL_TEXTURE_2D, texture1);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // int width, height, numChannels;
-    // stbi_set_flip_vertically_on_load(true);
-    // unsigned char *data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
-    // if (data)
-    // {
-    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //     glGenerateMipmap(GL_TEXTURE_2D);
-    // }
-    // else
-    // {
-    //     std::cout << "Failed to load texture\n";
-    // }
-    // stbi_image_free(data);
-
-    // glGenTextures(1, &texture2);
-    // glBindTexture(GL_TEXTURE_2D, texture2);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // data = stbi_load("textures/dame.jpeg", &width, &height, &numChannels, 0);
-    // if (data)
-    // {
-    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //     glGenerateMipmap(GL_TEXTURE_2D);
-    // }
-    // else
-    // {
-    //     std::cout << "Failed to load texture" << std::endl;
-    // }
-    // stbi_image_free(data);
-
-    // g_ShaderProgram.activate();
-    // g_ShaderProgram.setInt("inTexture0", 0);
-    // g_ShaderProgram.setInt("inTexture1", 1);
 
     vec3f pod{std::array<float, 3>{0.f, 1.f, 1.f}};
     cout << pod << "\n";
@@ -527,6 +469,33 @@ int main()
     return 0;
 }
 
+bool checkExtensitions()
+{
+    std::vector<std::string> exts{
+        "GL_ARB_bindless_texture",
+        "GL_NV_bindless_texture",
+    };
+
+    // const auto checkExtension = [](const std::string& ext)
+    // {
+    //     GLint ExtensionCount = 0;
+    //     glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
+    //     for (GLint i = 0; i < ExtensionCount; ++i)
+    //         if (std::string((char const *)glGetStringi(GL_EXTENSIONS, i)) == ext)
+    //             return true;
+    //     return false;
+    // };
+
+    for (const auto &ext : exts)
+    {
+        if (!glfwExtensionSupported(ext.c_str()))
+        {
+            std::cerr << std::format("{} is not supported\n", ext);
+            return false;
+        }
+    }
+    return true;
+}
 // continous
 void processInput(GLFWwindow *window)
 {
@@ -558,12 +527,6 @@ void render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     g_ShaderProgramPipeline->bind();
-
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, texture1);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, texture2);
-
     mat4x4f identity(1.0f);
     // // +20.f, move away, zoom out
     // auto view1 = MatrixMultiply4x4(MatrixTranslation4x4(0.0f, 0.0f, 20.f), identity);
@@ -580,26 +543,44 @@ void render()
 
     // left-hand
     auto vp = MatrixMultiply4x4(view, persPrj);
+    auto mvp = MatrixMultiply4x4(identity, vp);
 
+    // bind vao
     glBindVertexArray(VAO);
-    for (unsigned int i = 0; i < 10; i++)
-    {
-        auto t = MatrixMultiply4x4(MatrixTranslation4x4(
-                                       cubePositions[i][COMPONENT::X],
-                                       cubePositions[i][COMPONENT::Y],
-                                       cubePositions[i][COMPONENT::Z]),
-                                   identity);
-        float angle = 0.24f * i;
-        auto r = MatrixRotationAxis4x4(vec3f(std::array{1.0f, 0.3f, 0.5f}), angle);
-        auto model = MatrixMultiply4x4(r, t);
-        // left-hand
-        auto mvp = MatrixMultiply4x4(model, vp);
-        cout << mvp << "\n";
-        PerFrameData perFrameData{.mvp = mvp};
-        glNamedBufferSubData(g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize, &perFrameData);
-        // 6 * 6
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+    // bind uniform buffers
+    // buffer is genric, here bind it to unifor buffer, tell driver the usage of this buffer.
+    // ub slot: 0
+    // here basically bind the full range a buffer, glBindBufferRange is not useful
+    // glBindBufferRange(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
+    PerFrameData perFrameData{.mvp = mvp};
+    glNamedBufferSubData(g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize, &perFrameData);
+   
+    // bindless texture handle
+    // ub slot: 1
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_bindlessHandleUniformBufferHandle);
+    // cube position buffer
+    glBindBufferBase(GL_UNIFORM_BUFFER, 2, g_instancingOffsetBufferHandle);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, NUM_CUBES);
+    
+    // for (unsigned int i = 0; i < NUM_CUBES; ++i)
+    // {
+    //     auto t = MatrixMultiply4x4(MatrixTranslation4x4(
+    //                                    cubePositions[i][COMPONENT::X],
+    //                                    cubePositions[i][COMPONENT::Y],
+    //                                    cubePositions[i][COMPONENT::Z]),
+    //                                identity);
+    //     float angle = 0.24f * i;
+    //     auto r = MatrixRotationAxis4x4(vec3f(std::array{1.0f, 0.3f, 0.5f}), angle);
+    //     auto model = MatrixMultiply4x4(r, t);
+    //     // left-hand
+    //     auto mvp = MatrixMultiply4x4(model, vp);
+    //     cout << mvp << "\n";
+    //     PerFrameData perFrameData{.mvp = mvp};
+    //     glNamedBufferSubData(g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize, &perFrameData);
+    //     // 6 * 6
+    //     glDrawArrays(GL_TRIANGLES, 0, 36);
+    // }
 
     // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_TRIANGLES, 0, 3);
