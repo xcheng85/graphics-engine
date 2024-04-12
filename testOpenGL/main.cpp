@@ -103,6 +103,8 @@ struct PerFrameData
 {
     mat4x4f mvp;
 };
+// avoid mapping unmapping per frame
+PerFrameData *g_perFramePersistentPtr{nullptr};
 GLuint g_perFrameDataBufferHandle;
 const GLsizeiptr g_perFrameDataBufferSize = sizeof(vec3f) * NUM_CUBES;
 
@@ -347,15 +349,20 @@ int main()
     // uniform buffer
     // requires opengl 4.5
     // glCreateBuffers is the equivalent of glGenBuffers + glBindBuffer(the initialization part)
-    //
     glCreateBuffers(1, &g_perFrameDataBufferHandle);
     // no data to copy during init
-    glNamedBufferStorage(g_perFrameDataBufferHandle, g_perFrameDataBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
-
+    // glNamedBufferStorage(g_perFrameDataBufferHandle, g_perFrameDataBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(g_perFrameDataBufferHandle, g_perFrameDataBufferSize, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+    // bind is needed
+    glBindBuffer(GL_UNIFORM_BUFFER, g_perFrameDataBufferHandle);
+    g_perFramePersistentPtr = (PerFrameData *)glMapBufferRange(
+        GL_UNIFORM_BUFFER, 0, sizeof(PerFrameData),
+        GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glCreateBuffers(1, &g_instancingOffsetBufferHandle);
     // static and immutable
-    glNamedBufferStorage(g_instancingOffsetBufferHandle, 
-        g_instancingOffsetBufferSize, &cubePositions[0], 0);
+    glNamedBufferStorage(g_instancingOffsetBufferHandle,
+                         g_instancingOffsetBufferSize, &cubePositions[0], 0);
 
     // // textures
     g_texture2d_1 = make_unique<Texture>(
@@ -365,8 +372,8 @@ int main()
     // bindless uint64_t handle
     const auto bindlessTextureHandle = g_texture2d_1->getBindlessHandle();
     glCreateBuffers(1, &g_bindlessHandleUniformBufferHandle);
-    //static buffer: set flags​ to 0 and use data​ as the initial upload
-    // immutable storage
+    // static buffer: set flags​ to 0 and use data​ as the initial upload
+    //  immutable storage
     glNamedBufferStorage(g_bindlessHandleUniformBufferHandle,
                          sizeof(bindlessTextureHandle),
                          &bindlessTextureHandle, 0);
@@ -463,8 +470,16 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    // glDeleteVertexArrays(1, &VAO);
-    // glDeleteBuffers(1, &VBO);
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    if (g_perFramePersistentPtr)
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, g_perFrameDataBufferHandle);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        g_perFramePersistentPtr = nullptr;
+    }
+
     glfwTerminate();
     return 0;
 }
@@ -552,17 +567,23 @@ void render()
     // ub slot: 0
     // here basically bind the full range a buffer, glBindBufferRange is not useful
     // glBindBufferRange(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
+    // inefficient way to update uniform buffer
+    // glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
     PerFrameData perFrameData{.mvp = mvp};
-    glNamedBufferSubData(g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize, &perFrameData);
-   
+    // glNamedBufferSubData(g_perFrameDataBufferHandle, 0, g_perFrameDataBufferSize, &perFrameData);
+
+    // persistent mapped, update using mapping pointer
+    *g_perFramePersistentPtr = perFrameData;
+
+    // this is for rendering
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_perFrameDataBufferHandle);
     // bindless texture handle
     // ub slot: 1
     glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_bindlessHandleUniformBufferHandle);
     // cube position buffer
     glBindBufferBase(GL_UNIFORM_BUFFER, 2, g_instancingOffsetBufferHandle);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, NUM_CUBES);
-    
+
     // for (unsigned int i = 0; i < NUM_CUBES; ++i)
     // {
     //     auto t = MatrixMultiply4x4(MatrixTranslation4x4(
