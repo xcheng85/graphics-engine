@@ -1,7 +1,9 @@
 #include <shaders/common.h>
 
-in vec3 outColor;
-in vec2 outTexCoord;
+in block
+{
+    vec2 TexCoord;
+} In;
 
 // bindless texture
 // uvec2 for uint64_t handle
@@ -14,8 +16,7 @@ layout(location = FRAG_COLOR, index = 0) out vec4 FragColor;
 
 void main()
 {
-    FragColor = texture(sampler2D(Material.Diffuse), outTexCoord);
+    FragColor = texture(sampler2D(Material.Diffuse), In.TexCoord);
 
-    // FragColor = vec4(1, 0, 0, 1);
     // FragColor = mix(texture(inTexture0, outTexCoord), texture(inTexture1, outTexCoord), 1);
 } 
