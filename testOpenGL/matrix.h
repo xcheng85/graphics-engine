@@ -41,6 +41,7 @@ struct mat
         }
         return res;
     }
+    // column-major
     mat(const std::array<T, N * N> &a)
     {
         memset(data, 0, sizeof(T) * N * N);
@@ -48,8 +49,9 @@ struct mat
         int r, c;
         for (const auto v : a)
         {
-            r = dst / N;
-            c = dst % N;
+            // column-major
+            c = dst / N;
+            r = dst % N;
             data[r][c] = v;
             ++dst;
         }
