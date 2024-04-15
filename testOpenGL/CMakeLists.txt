@@ -9,8 +9,10 @@ file(GLOB_RECURSE SRC_FILES *.cpp CMAKE_CONFIGURE_DEPENDS)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 #target_link_libraries(${PROJECT_NAME} glfw3 glad profiler tcmalloc)
-target_link_libraries(${PROJECT_NAME} glfw3 glad)
+target_link_libraries(${PROJECT_NAME} glfw3 glad tlsf)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
+include_directories(${CMAKE_SOURCE_DIR}/external/tlsf/include)
+include_directories(${CMAKE_SOURCE_DIR}/external/json)
 
 set(copy_source_dir "${CMAKE_SOURCE_DIR}/data/")
 set(copy_dest_dir "${CMAKE_BINARY_DIR}/Build/bin")
@@ -23,5 +25,8 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 ${CMAKE_CURRENT_SOURCE_DIR}/assets/textures
                 ${CMAKE_BINARY_DIR}/bin/textures
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/assets/gltf
+                ${CMAKE_BINARY_DIR}/bin/gltf
         COMMENT "Copying to ${CMAKE_BINARY_DIR}"
 )

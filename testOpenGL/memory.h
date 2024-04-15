@@ -88,6 +88,7 @@ class HeapAllocator
 {
 public:
     using value_type = T;
+    using arena_type = IMemoryAllocator;
     HeapAllocator(IMemoryAllocator *arena) noexcept : _arena{arena}
     {
     }
@@ -124,6 +125,7 @@ public:
     }
     template <class U>
     friend struct HeapAllocator;
+
 private:
     // at least as strict (as large) as that of every scalar type
     // std::max_align_t is usually synonymous with the largest scalar type, which is long double
