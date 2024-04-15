@@ -57,6 +57,11 @@ namespace IO::GLTF
         int32_t mesh;
         // "children": [1, 2, 3, 4]
         CustomInt32Vector children;
+        // model-space column-major transformation (GL/vulkan)
+        mat4x4f matrix;
+        vec3f translation;
+        vec3f scale;
+        vec4f rotationQuat;
     };
 
     struct Primitive

@@ -40,7 +40,6 @@ namespace IO::GLTF
     // forward declaration
     void parseScene(json &json_scene, Scene &scene, IMemoryAllocator *customMemoryAllocator);
     void parseInt(json &json_int, int32_t &i32);
-    void parseIntArray(json &json_intarray, CustomInt32Vector &i32Vector, IMemoryAllocator *customMemoryAllocator);
     void parseNode(json &json_node, Node &node, IMemoryAllocator *customMemoryAllocator);
 
     void parseInt(json &json_int, int32_t &i32)
@@ -90,6 +89,39 @@ namespace IO::GLTF
         b = json_boolean.template get<bool>();
     }
 
+    void parseMat4x4f(json &json_mat4x4f, mat4x4f &m)
+    {
+        const auto numFloats = json_mat4x4f.size();
+        assert(numFloats == 16);
+
+        size_t c, r;
+        for (size_t i = 0; i < numFloats; ++i)
+        {
+            c = i / 4;
+            r = i % 4;
+            m.data[r][c] = json_mat4x4f.at(i);
+        }
+    }
+
+    void parseVec3f(json &json_vec3f, vec3f &v)
+    {
+        const auto numFloats = json_vec3f.size();
+        assert(numFloats == 3);
+        v.data[0] = json_vec3f.at(0);
+        v.data[1] = json_vec3f.at(1);
+        v.data[2] = json_vec3f.at(2);
+    }
+
+    void parseVec4f(json &json_vec4f, vec4f &v)
+    {
+        const auto numFloats = json_vec4f.size();
+        assert(numFloats == 4);
+        v.data[0] = json_vec4f.at(0);
+        v.data[1] = json_vec4f.at(1);
+        v.data[2] = json_vec4f.at(2);
+        v.data[3] = json_vec4f.at(3);
+    }
+
     // hide impl detail from the declaration
     void parseScenes(json &json_scenes, GLTF &gltf, IMemoryAllocator *customMemoryAllocator)
     {
@@ -124,6 +156,26 @@ namespace IO::GLTF
         if (json_node.contains("mesh"))
         {
             parseInt(json_node["mesh"], node.mesh);
+        }
+        if (json_node.contains("children"))
+        {
+            parseInt32Array(json_node["children"], node.children, customMemoryAllocator);
+        }
+        if (json_node.contains("matrix"))
+        {
+            parseMat4x4f(json_node["matrix"], node.matrix);
+        }
+        if (json_node.contains("translation"))
+        {
+            parseVec3f(json_node["translation"], node.translation);
+        }
+        if (json_node.contains("scale"))
+        {
+            parseVec3f(json_node["scale"], node.scale);
+        }
+        if (json_node.contains("rotation"))
+        {
+            parseVec4f(json_node["rotation"], node.rotationQuat);
         }
     }
     // attributes is required
