@@ -110,7 +110,7 @@ namespace IO::GLTF
     void parseNodes(json &json_nodes, GLTF &gltf, IMemoryAllocator *customMemoryAllocator)
     {
         auto nodesNum = json_nodes.size();
-        gltf.nodes.assign(nodesNum, Node{});
+        gltf.nodes.assign(nodesNum, Node{customMemoryAllocator});
 
         for (size_t i = 0; i < nodesNum; ++i)
         {

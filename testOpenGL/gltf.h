@@ -49,8 +49,14 @@ namespace IO::GLTF
 
     struct Node
     {
+        Node() = delete;
+        Node(IMemoryAllocator *customMemoryAllocator) : children(customMemoryAllocator)
+        {
+        }
         // index of mesh in mesh-container
         int32_t mesh;
+        // "children": [1, 2, 3, 4]
+        CustomInt32Vector children;
     };
 
     struct Primitive
