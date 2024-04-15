@@ -32,7 +32,15 @@ struct mat
 
     mat(mat &&) noexcept = default;
     mat &operator=(mat &&) noexcept = default;
-
+    static mat identity()
+    {
+        mat res;
+        for (size_t i = 0; i < N; ++i)
+        {
+            res.data[i][i] = 1;
+        }
+        return res;
+    }
     mat(const std::array<T, N * N> &a)
     {
         memset(data, 0, sizeof(T) * N * N);
@@ -292,7 +300,7 @@ inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis4x4(const vec<T, 3, sizeof(T)
 // // camera/view transformation, v in mvp
 // // 1. world position of camera
 // // 2. world position of target point
-// // 3. world camera up vector (not necessarily equal canonical world up vector) 
+// // 3. world camera up vector (not necessarily equal canonical world up vector)
 
 // // basically create new orthogonal basis
 // f: z in camera space
@@ -303,9 +311,9 @@ inline mat<T, 4, sizeof(T) * 16> MatrixRotationAxis4x4(const vec<T, 3, sizeof(T)
 // v = View * Model * V
 
 template <typename T = float>
-inline mat<T, 4, sizeof(T) * 16> ViewTransformLH4x4(const vec<T, 3, sizeof(T) * 4>& pos,
-                                                    const vec<T, 3, sizeof(T) * 4>& target,
-                                                    const vec<T, 3, sizeof(T) * 4>& up)
+inline mat<T, 4, sizeof(T) * 16> ViewTransformLH4x4(const vec<T, 3, sizeof(T) * 4> &pos,
+                                                    const vec<T, 3, sizeof(T) * 4> &target,
+                                                    const vec<T, 3, sizeof(T) * 4> &up)
 {
     mat<T, 4, sizeof(T) * 16> m;
     // requires global version operator-
