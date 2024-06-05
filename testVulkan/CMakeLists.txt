@@ -15,3 +15,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${SDL2_INCLUDE_DIRS} ${Vulkan_
 target_include_directories(${PROJECT_NAME} PUBLIC .)
 target_link_libraries(${PROJECT_NAME} profiler tcmalloc lua ${SDL2_LIBRARIES} ${Vulkan_LIBRARIES} 
 volk_headers GPUOpen::VulkanMemoryAllocator  glslang::glslang glslang::SPIRV glslang::glslang-default-resource-limits)
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders
+                ${CMAKE_BINARY_DIR}/bin/testVulkan/shaders
+        # COMMAND ${CMAKE_COMMAND} -E copy_directory
+        #         ${CMAKE_CURRENT_SOURCE_DIR}/assets/textures
+        #         ${CMAKE_BINARY_DIR}/bin/testVulkan/textures
+        # COMMAND ${CMAKE_COMMAND} -E copy_directory
+        #         ${CMAKE_CURRENT_SOURCE_DIR}/assets/gltf
+        #         ${CMAKE_BINARY_DIR}/bin/testVulkan/gltf
+        COMMENT "Copying to ${CMAKE_BINARY_DIR}"
+)
