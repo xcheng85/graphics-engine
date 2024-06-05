@@ -49,11 +49,18 @@ VkQueue gTransferQueue = VK_NULL_HANDLE;
 VkQueue gPresentationQueue = VK_NULL_HANDLE;
 VkQueue gSparseQueues = VK_NULL_HANDLE;
 VmaAllocator gVmaAllocator = VK_NULL_HANDLE;
+constexpr uint32_t gSwapChainImageCount = 3;
+constexpr VkFormat gSwapChainFormat = VK_FORMAT_B8G8R8A8_UNORM;
 VkSwapchainKHR gSwapChain = VK_NULL_HANDLE;
-
+std::vector<VkImageView> gSwapChainImageViews;
 VkShaderModule gVertexShaderModule = VK_NULL_HANDLE;
+VkShaderModule gFragShaderModule = VK_NULL_HANDLE;
 
-void createShaderModule(
+std::vector<VkFramebuffer> swapchainFramebuffers(gSwapChainImageCount);
+
+VkRenderPass gSwapChainRenderPass;
+
+VkShaderModule createShaderModule(
     const std::string &filePath,
     const std::string &entryPoint,
     const std::string &correlationId);
@@ -666,6 +673,7 @@ void init()
         ASSERT(gVmaAllocator, "Failed to create vma allocator");
     }
     // 16. swap chain
+    VkExtent2D swapchainExtent;
     {
         int w, h;
         SDL_GetWindowSize(gWindow.nativeHandle(), &w, &h);
@@ -673,7 +681,7 @@ void init()
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(selectedPhysicalDevice, gVulkanWindowSurface, &surfaceCapabilities);
 
-        VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
+        swapchainExtent = surfaceCapabilities.currentExtent;
         if (swapchainExtent.width == UINT32_MAX)
         {
             swapchainExtent.width = clamp(swapchainExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
@@ -681,10 +689,8 @@ void init()
         }
         // min Image count in swap chain for double/triple buffer
         cout << format("Creating swapchain {} {}, minImageCount \n", swapchainExtent.width, swapchainExtent.height, surfaceCapabilities.minImageCount);
-        constexpr uint32_t swapChainImageCount = 3;
         // vulkan_swapchain_image_count = surface_capabilities.minImageCount + 2;
 
-        const VkFormat swapChainFormat = VK_FORMAT_B8G8R8A8_UNORM;
         uint32_t supportedSurfaceFormatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(selectedPhysicalDevice, gVulkanWindowSurface, &supportedSurfaceFormatCount, nullptr);
         std::vector<VkSurfaceFormatKHR> supportedFormats(supportedSurfaceFormatCount);
@@ -697,7 +703,7 @@ void init()
         // std::copy(std::begin(formats), std::end(formats), std::ostream_iterator<VkFormat>(cout, "\n"));
         // std::cout << "<--supported surface(swap chain) format" << endl;
         ASSERT(supportedFormats.end() != std::find_if(supportedFormats.begin(), supportedFormats.end(), [&](const VkSurfaceFormatKHR &format)
-                                                      { return format.format == swapChainFormat; }),
+                                                      { return format.format == gSwapChainFormat; }),
                "swapChainFormat is not supported");
 
         const VkRect2D renderArea = {.offset = {.x = 0, .y = 0}, .extent = swapchainExtent};
@@ -708,8 +714,8 @@ void init()
         VkSwapchainCreateInfoKHR swapchain = {};
         swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain.surface = gVulkanWindowSurface;
-        swapchain.minImageCount = swapChainImageCount;
-        swapchain.imageFormat = swapChainFormat;
+        swapchain.minImageCount = gSwapChainImageCount;
+        swapchain.imageFormat = gSwapChainFormat;
         swapchain.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
         swapchain.imageExtent = swapchainExtent;
         swapchain.clipped = VK_TRUE;
@@ -731,20 +737,146 @@ void init()
         VK_CHECK(vkCreateSwapchainKHR(gLogicDevice, &swapchain, nullptr, &gSwapChain));
         setCorrlationId(gSwapChain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, "Swapchain");
     }
-    // 17. shader module
+    // 17. image view for swapchain images, image is created by swapchain
+    {
+        // image for swapchain
+        uint32_t imageCount{0};
+        VK_CHECK(vkGetSwapchainImagesKHR(gLogicDevice, gSwapChain, &imageCount, nullptr));
+        std::vector<VkImage> images(imageCount);
+        VK_CHECK(vkGetSwapchainImagesKHR(gLogicDevice, gSwapChain, &imageCount, images.data()));
+
+        gSwapChainImageViews.reserve(imageCount);
+
+        VkImageViewCreateInfo imageView{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+        // VK_IMAGE_VIEW_TYPE_2D_ARRAY for image array
+        imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageView.format = gSwapChainFormat;
+        // no mipmap
+        imageView.subresourceRange.levelCount = 1;
+        // no image array
+        imageView.subresourceRange.layerCount = 1;
+        imageView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageView.components.r = VK_COMPONENT_SWIZZLE_R;
+        imageView.components.g = VK_COMPONENT_SWIZZLE_G;
+        imageView.components.b = VK_COMPONENT_SWIZZLE_B;
+        imageView.components.a = VK_COMPONENT_SWIZZLE_A;
+        for (size_t i = 0; i < imageCount; ++i)
+        {
+            imageView.image = images[i];
+            VK_CHECK(vkCreateImageView(gLogicDevice, &imageView, nullptr, &gSwapChainImageViews[i]));
+            setCorrlationId(gSwapChainImageViews[i], VK_OBJECT_TYPE_IMAGE_VIEW, "Swap Chain Image view: " + i);
+        }
+    }
+
+    // 18. shader module
     {
         // lateral for filepath in modern c++
         const auto shadersPath = std::filesystem::current_path() / "testVulkan/shaders";
         const auto vertexShaderPath = shadersPath / "test.vert";
         const auto fragShaderPath = shadersPath / "test.frag";
-        createShaderModule(
+        gVertexShaderModule = createShaderModule(
             vertexShaderPath.string(),
             "main",
             "test.vert");
-        createShaderModule(
+        gFragShaderModule = createShaderModule(
             fragShaderPath.string(),
             "main",
             "test.frag");
+    }
+    // 19. renderpass for the swap chain
+    {
+        //    bool generateMips = false,
+        //    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT,
+        //    const std::string& name = "", bool multiview = false,
+        //    VkImageTiling = VK_IMAGE_TILING_OPTIMAL);
+
+        // Color attachment
+        VkAttachmentDescription color = {};
+        color.format = gSwapChainFormat;
+        // multi-samples here
+        color.samples = VK_SAMPLE_COUNT_1_BIT;
+        // like tree traversal, enter/exit the node
+        // enter the renderpass: clear
+        color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        // leave the renderpass: store
+        color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        // swap chain is not used for stencil, don't care
+        color.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        // swap chain is for presentation
+        color.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        // VkAttachmentReference is for subpass, how subpass could refer to the color attachment
+        // here only 1 color attachement, index is 0;
+        VkAttachmentReference colorRef = {};
+        colorRef.attachment = 0;
+        colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        // for graphics presentation
+        // no depth, stencil and multi-sampl
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorRef;
+
+        // subpass dependencies
+        // VK_SUBPASS_EXTERNAL means anything outside of a given render pass scope.
+        // When used for srcSubpass it specifies anything that happened before the render pass.
+        // And when used for dstSubpass it specifies anything that happens after the render pass.
+        // It means that synchronization mechanisms need to include operations that happen before
+        // or after the render pass.
+        // It may be another render pass, but it also may be some other operations,
+        // not necessarily render pass-related.
+
+        // dstSubpass: 0
+        std::array<VkSubpassDependency, 2> dependencies;
+        dependencies[0] = {
+            .srcSubpass = VK_SUBPASS_EXTERNAL,
+            .dstSubpass = 0,
+            // specifies all operations performed by all commands
+            .srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            // stage of the pipeline after blending
+            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT |
+                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            // dependencies: memory read may collide with renderpass write
+            .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+            .dstAccessMask =
+                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+        };
+
+        dependencies[1] = {
+            .srcSubpass = 0,
+            .dstSubpass = VK_SUBPASS_EXTERNAL,
+            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+        };
+
+        VkAttachmentDescription attachments[] = {color};
+
+        VkRenderPassCreateInfo renderpass = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+        // here could set multi-view VkRenderPassMultiviewCreateInfo
+        renderpass.pNext = nullptr;
+        renderpass.attachmentCount = sizeof(attachments) / sizeof(attachments[0]);
+        renderpass.pAttachments = attachments;
+        renderpass.subpassCount = 1;
+        renderpass.pSubpasses = &subpass;
+        renderpass.dependencyCount = 2;
+        renderpass.pDependencies = dependencies.data();
+
+        VK_CHECK(vkCreateRenderPass(gLogicDevice, &renderpass, nullptr, &gSwapChainRenderPass));
+        setCorrlationId(gSwapChainRenderPass, VK_OBJECT_TYPE_RENDER_PASS, "Render pass: SwapChain");
     }
 }
 
@@ -912,11 +1044,12 @@ EShLanguage shaderStageFromFileName(const std::filesystem::path &path)
 }
 
 // const std::vector<char>& spirv,
-void createShaderModule(
+VkShaderModule createShaderModule(
     const std::string &filePath,
     const std::string &entryPoint,
     const std::string &correlationId)
 {
+    VkShaderModule res;
     const auto path = std::filesystem::path(filePath);
     const bool isBinary = path.extension().string() == ".spv";
     std::vector<char> data = readFile(filePath, isBinary);
@@ -932,8 +1065,9 @@ void createShaderModule(
         .codeSize = data.size(),
         .pCode = (const uint32_t *)data.data(),
     };
-    VK_CHECK(vkCreateShaderModule(gLogicDevice, &shaderModule, nullptr, &gVertexShaderModule));
-    setCorrlationId(gVertexShaderModule, VK_OBJECT_TYPE_SHADER_MODULE, "Shader Module: " + correlationId);
+    VK_CHECK(vkCreateShaderModule(gLogicDevice, &shaderModule, nullptr, &res));
+    setCorrlationId(res, VK_OBJECT_TYPE_SHADER_MODULE, "Shader Module: " + correlationId);
+    return res;
 }
 
 int main(int argc, char **argv)
