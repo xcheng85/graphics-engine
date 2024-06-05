@@ -1,3 +1,12 @@
+## GLTF
+https://github.khronos.org/glTF-Tutorials/gltfTutorial/
+
+## Linear Custom Memory Allocator
+
+1. stack-based
+2. marker
+3. no marker
+
 ## Buffer Object in Modern OpenGL
 Pure in-OpenGL buffers: In-direct rendering, transform feedback, compute shader
 

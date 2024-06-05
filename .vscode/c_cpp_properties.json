@@ -6,6 +6,7 @@
                 "/home/xiao/github.com/xcheng85/graphics-engine/engine/src/**",
                 "/home/xiao/github.com/xcheng85/graphics-engine/glad/**",
                 "/home/xiao/github.com/xcheng85/graphics-engine/external/lua",
+                "/home/xiao/github.com/xcheng85/graphics-engine/external/json",
                 "/home/xiao/github.com/xcheng85/graphics-engine/external/sdl/include/SDL3"
             ],
             "defines": [

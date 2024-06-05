@@ -10,6 +10,8 @@
 #include <numeric>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
+#include <glslang/Include/glslang_c_interface.h>
+#include <glslang/Public/resource_limits_c.h>
 
 #define ASSERT(expr, message) \
     {                         \
@@ -41,13 +43,14 @@ VkQueue gTransferQueue = VK_NULL_HANDLE;
 VkQueue gPresentationQueue = VK_NULL_HANDLE;
 VkQueue gSparseQueues = VK_NULL_HANDLE;
 VmaAllocator gVmaAllocator = VK_NULL_HANDLE;
+VkSwapchainKHR gSwapChain = VK_NULL_HANDLE;
 
 static VkBool32 debugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                                        VkDebugUtilsMessageTypeFlagsEXT types,
                                        const VkDebugUtilsMessengerCallbackDataEXT *callback_data,
                                        void *user_data)
 {
-    // cout << format(" MessageID: {} {}\nMessage: {}\n\n", callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage);
+    cout << format(" MessageID: {} {}\nMessage: {}\n\n", callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage);
 
     if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     {
@@ -69,7 +72,7 @@ void setCorrlationId(T handle, VkObjectType type, const std::string &name)
     VK_CHECK(vkSetDebugUtilsObjectNameEXT(gLogicDevice, &objectNameInfo));
 }
 
-void createVulkanInstance()
+void init()
 {
     // 1. check layers
     {
@@ -556,9 +559,9 @@ void createVulkanInstance()
         VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR};
         physicalFeatures2.pNext = &dynamicRenderingFeatures;
 
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, &dynamicRenderingFeatures};
         if (bindlessSupported)
         {
-            VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, &dynamicRenderingFeatures};
             indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
             indexingFeatures.runtimeDescriptorArray = VK_TRUE;
             physicalFeatures2.pNext = &indexingFeatures;
@@ -649,11 +652,79 @@ void createVulkanInstance()
         vmaCreateAllocator(&allocatorInfo, &gVmaAllocator);
         ASSERT(gVmaAllocator, "Failed to create vma allocator");
     }
+    // 16. swap chain
+    {
+        int w, h;
+        SDL_GetWindowSize(gWindow.nativeHandle(), &w, &h);
+
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(selectedPhysicalDevice, gVulkanWindowSurface, &surfaceCapabilities);
+
+        VkExtent2D swapchainExtent = surfaceCapabilities.currentExtent;
+        if (swapchainExtent.width == UINT32_MAX)
+        {
+            swapchainExtent.width = clamp(swapchainExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
+            swapchainExtent.height = clamp(swapchainExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
+        }
+        // min Image count in swap chain for double/triple buffer
+        cout << format("Creating swapchain {} {}, minImageCount \n", swapchainExtent.width, swapchainExtent.height, surfaceCapabilities.minImageCount);
+        constexpr uint32_t swapChainImageCount = 3;
+        // vulkan_swapchain_image_count = surface_capabilities.minImageCount + 2;
+
+        const VkFormat swapChainFormat = VK_FORMAT_B8G8R8A8_UNORM;
+        uint32_t supportedSurfaceFormatCount;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(selectedPhysicalDevice, gVulkanWindowSurface, &supportedSurfaceFormatCount, nullptr);
+        std::vector<VkSurfaceFormatKHR> supportedFormats(supportedSurfaceFormatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(selectedPhysicalDevice, gVulkanWindowSurface, &supportedSurfaceFormatCount, supportedFormats.data());
+
+        std::vector<VkFormat> formats;
+        std::transform(std::begin(supportedFormats), std::end(supportedFormats), std::back_inserter(formats), [](const VkSurfaceFormatKHR &f)
+                       { return f.format; });
+        // std::cout << "-->supported surface(swap chain) format" << endl;
+        // std::copy(std::begin(formats), std::end(formats), std::ostream_iterator<VkFormat>(cout, "\n"));
+        // std::cout << "<--supported surface(swap chain) format" << endl;
+        ASSERT(supportedFormats.end() != std::find_if(supportedFormats.begin(), supportedFormats.end(), [&](const VkSurfaceFormatKHR &format)
+                                                      { return format.format == swapChainFormat; }),
+               "swapChainFormat is not supported");
+
+        const VkRect2D renderArea = {.offset = {.x = 0, .y = 0}, .extent = swapchainExtent};
+        //   context.createSwapchain(swapChainFormat, VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+        //                           VK_PRESENT_MODE_FIFO_KHR, extents);
+        //   const VkRect2D renderArea = {.offset = {.x = 0, .y = 0}, .extent = extents};
+
+        VkSwapchainCreateInfoKHR swapchain = {};
+        swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchain.surface = gVulkanWindowSurface;
+        swapchain.minImageCount = swapChainImageCount;
+        swapchain.imageFormat = swapChainFormat;
+        swapchain.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+        swapchain.imageExtent = swapchainExtent;
+        swapchain.clipped = VK_TRUE;
+        swapchain.imageArrayLayers = 1;
+        swapchain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        // VK_SHARING_MODE_EXCLUSIVE,
+        // VK_SHARING_MODE_CONCURRENT: concurrent access to any range or image subresource from multiple queue families
+        swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        // VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+        swapchain.preTransform = surfaceCapabilities.currentTransform;
+        // ignore alpha completely
+        swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        // VK_PRESENT_MODE_FIFO_KHR always supported
+        swapchain.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        swapchain.oldSwapchain = VK_NULL_HANDLE;
+        // following two fields for concurrent image sharing
+        // swapchain.queueFamilyIndexCount =
+        // swapchain.pQueueFamilyIndices =
+        VK_CHECK(vkCreateSwapchainKHR(gLogicDevice, &swapchain, nullptr, &gSwapChain));
+        setCorrlationId(gSwapChain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, "Swapchain");
+    }
+    // 17. shader module
+    {
+    }
 }
 
 int main(int argc, char **argv)
 {
-
     WindowConfig cfg{
         1920,
         1080,
@@ -662,8 +733,9 @@ int main(int argc, char **argv)
     gWindow.init(&cfg);
 
     VK_CHECK(volkInitialize());
+    glslang_initialize_process();
 
-    createVulkanInstance();
+    init();
 
     while (gRunning)
     {
@@ -671,6 +743,6 @@ int main(int argc, char **argv)
     }
 
     gWindow.shutdown();
-
+    glslang_finalize_process();
     return 0;
 }

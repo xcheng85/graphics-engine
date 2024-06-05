@@ -12,6 +12,7 @@
 
 #include "vector.h"
 #include "matrix.h"
+#include "fp.h"
 
 template <typename T>
 concept float_or_double_type = std::floating_point<T>;
@@ -29,6 +30,11 @@ struct quaternion : public vec<T, 4, sizeof(T) * 4>
     // delegate to other ctor
     inline quaternion(const vec<T, 3, sizeof(T) * 4> &n, const T &w)
         : quaternion(n[COMPONENT::X], n[COMPONENT::Y], n[COMPONENT::Z], w)
+    {
+    }
+    // delegate to other ctor
+    inline quaternion(const vec<T, 4, sizeof(T) * 4> &q)
+        : quaternion(q[COMPONENT::X],q[COMPONENT::Y], q[COMPONENT::Z], q[COMPONENT::W])
     {
     }
 };

@@ -216,8 +216,8 @@ inline T *value_ptr(vec<T, N, Alignment> &v)
 using vec2f = vec<float, 2, 8>;
 // 12 byte --> 16
 using vec3f = vec<float, 3, 16>;
-// 32 bytes = 8 bytes (float) * 4
-using vec4f = vec<float, 4, 32>;
+// 32 bytes = 4 bytes (float) * 4
+using vec4f = vec<float, 4, 16>;
 
 using vec2d = vec<double, 2, 16>;
 using vec3d = vec<double, 3, 32>;
