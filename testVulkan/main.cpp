@@ -1,5 +1,6 @@
 #define VK_NO_PROTOTYPES // for volk
 #define VOLK_IMPLEMENTATION
+
 #include "volk.h"
 #include <window.h>
 #include <assert.h>
@@ -7,6 +8,8 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #define ASSERT(expr, message) \
     {                         \
@@ -35,6 +38,9 @@ VkDevice gLogicDevice = VK_NULL_HANDLE;
 VkQueue gGraphicsQueue = VK_NULL_HANDLE;
 VkQueue gComputeQueue = VK_NULL_HANDLE;
 VkQueue gTransferQueue = VK_NULL_HANDLE;
+VkQueue gPresentationQueue = VK_NULL_HANDLE;
+VkQueue gSparseQueues = VK_NULL_HANDLE;
+VmaAllocator gVmaAllocator = VK_NULL_HANDLE;
 
 static VkBool32 debugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                                        VkDebugUtilsMessageTypeFlagsEXT types,
@@ -337,7 +343,6 @@ void createVulkanInstance()
                 std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
                 vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 
-                uint32_t familyIndexSupportSurface;
                 VkBool32 surfaceSupported;
                 for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; ++familyIndex)
                 {
@@ -461,6 +466,9 @@ void createVulkanInstance()
             // |: means or, both graphics and compute
             if ((queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
             {
+                // Sparse memory bindings execute on a queue that includes the VK_QUEUE_SPARSE_BINDING_BIT bit
+                // While some implementations may include VK_QUEUE_SPARSE_BINDING_BIT support in queue families that also include graphics and compute support
+                ASSERT((queueFamily.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == VK_QUEUE_SPARSE_BINDING_BIT, "Bindless is not supported");
                 graphicsComputeQueueFamilyIndex = i;
                 // separate graphics and compute queue
                 if (queueFamily.queueCount > 1)
@@ -576,7 +584,7 @@ void createVulkanInstance()
         // Initialize volk for this device
         volkLoadDevice(gLogicDevice);
     }
-
+    // 14. cache command queue
     {
         // 0th queue of that queue family is graphics
         vkGetDeviceQueue(gLogicDevice, graphicsComputeQueueFamilyIndex, 0, &gGraphicsQueue);
@@ -587,9 +595,59 @@ void createVulkanInstance()
         {
             vkGetDeviceQueue(gLogicDevice, transferQueueFamilyIndex, 0, &gTransferQueue);
         }
+        // familyIndexSupportSurface
+        vkGetDeviceQueue(gLogicDevice, familyIndexSupportSurface, 0, &gPresentationQueue);
+        vkGetDeviceQueue(gLogicDevice, graphicsComputeQueueFamilyIndex, 0, &gSparseQueues);
         ASSERT(gGraphicsQueue, "Failed to access graphics queue");
-        ASSERT(gTransferQueue, "Failed to access compute queue");
+        ASSERT(gComputeQueue, "Failed to access compute queue");
         ASSERT(gTransferQueue, "Failed to access transfer queue");
+        ASSERT(gPresentationQueue, "Failed to access presentation queue");
+        ASSERT(gSparseQueues, "Failed to access sparse queue");
+    }
+    // 15. vulkan memory allocator
+    // https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+    {
+        const VmaVulkanFunctions vulkanFunctions = {
+            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+            .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+            .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+            .vkAllocateMemory = vkAllocateMemory,
+            .vkFreeMemory = vkFreeMemory,
+            .vkMapMemory = vkMapMemory,
+            .vkUnmapMemory = vkUnmapMemory,
+            .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+            .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+            .vkBindBufferMemory = vkBindBufferMemory,
+            .vkBindImageMemory = vkBindImageMemory,
+            .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+            .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+            .vkCreateBuffer = vkCreateBuffer,
+            .vkDestroyBuffer = vkDestroyBuffer,
+            .vkCreateImage = vkCreateImage,
+            .vkDestroyImage = vkDestroyImage,
+            .vkCmdCopyBuffer = vkCmdCopyBuffer,
+#if VMA_VULKAN_VERSION >= 1001000
+            .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+            .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+            .vkBindBufferMemory2KHR = vkBindBufferMemory2,
+            .vkBindImageMemory2KHR = vkBindImageMemory2,
+            .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+#endif
+#if VMA_VULKAN_VERSION >= 1003000
+            .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+            .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
+#endif
+        };
+
+        VmaAllocatorCreateInfo allocatorInfo = {};
+        allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+        allocatorInfo.physicalDevice = selectedPhysicalDevice;
+        allocatorInfo.device = gLogicDevice;
+        allocatorInfo.instance = gInstance;
+        allocatorInfo.pVulkanFunctions = &vulkanFunctions;
+        vmaCreateAllocator(&allocatorInfo, &gVmaAllocator);
+        ASSERT(gVmaAllocator, "Failed to create vma allocator");
     }
 }
 
