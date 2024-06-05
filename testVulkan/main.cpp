@@ -32,6 +32,9 @@ VkInstance gInstance = VK_NULL_HANDLE;
 VkDebugUtilsMessengerEXT gDebugUtilsMessenger = VK_NULL_HANDLE;
 VkSurfaceKHR gVulkanWindowSurface = VK_NULL_HANDLE;
 VkDevice gLogicDevice = VK_NULL_HANDLE;
+VkQueue gGraphicsQueue = VK_NULL_HANDLE;
+VkQueue gComputeQueue = VK_NULL_HANDLE;
+VkQueue gTransferQueue = VK_NULL_HANDLE;
 
 static VkBool32 debugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                                        VkDebugUtilsMessageTypeFlagsEXT types,
@@ -46,6 +49,18 @@ static VkBool32 debugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT se
     }
 
     return VK_FALSE;
+}
+
+template <typename T>
+void setCorrlationId(T handle, VkObjectType type, const std::string &name)
+{
+    const VkDebugUtilsObjectNameInfoEXT objectNameInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType = type,
+        .objectHandle = reinterpret_cast<uint64_t>(handle),
+        .pObjectName = name.c_str(),
+    };
+    VK_CHECK(vkSetDebugUtilsObjectNameEXT(gLogicDevice, &objectNameInfo));
 }
 
 void createVulkanInstance()
@@ -240,7 +255,6 @@ void createVulkanInstance()
         VK_CHECK(vkCreateInstance(&instanceInfo, nullptr, &gInstance));
 
         ASSERT(gInstance != VK_NULL_HANDLE, "Error creating VkInstance");
-
         // Initialize volk for this instance
         volkLoadInstance(gInstance);
     }
@@ -355,11 +369,17 @@ void createVulkanInstance()
         ASSERT(familyIndexSupportSurface != std::numeric_limits<uint32_t>::max(), "No Queue Family Index supporting surface found");
     }
 
-    // 11. Logging physical device
+    // 11. Query and Logging physical device (if some feature not supported by the physical device,
+    // then we cannot enable them when we create the logic device later on)
+    bool bindlessSupported = false;
     {
-        // Enable all features
-        VkPhysicalDeviceFeatures2 features_ = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-        vkGetPhysicalDeviceFeatures2(selectedPhysicalDevice, &features_);
+        // check if the descriptor index(bindless) is supported
+        // Query bindless extension, called Descriptor Indexing (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VK_EXT_descriptor_indexing.html)
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, nullptr};
+        VkPhysicalDeviceFeatures2 deviceFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures};
+        vkGetPhysicalDeviceFeatures2(selectedPhysicalDevice, &deviceFeatures);
+        bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
+        ASSERT(bindlessSupported, "Bindless is not supported");
 
         // Properties V1
         VkPhysicalDeviceProperties physicalDevicesProp1;
@@ -412,7 +432,59 @@ void createVulkanInstance()
         std::copy(std::begin(extensions), std::end(extensions), std::ostream_iterator<string>(cout, "\n"));
     }
 
-    // 12. create logic device
+    // 12. Query the selected device to cache the device queue family
+    uint32_t graphicsComputeQueueFamilyIndex = std::numeric_limits<uint32_t>::max();
+    uint32_t computeQueueFamilyIndex = std::numeric_limits<uint32_t>::max();
+    uint32_t transferQueueFamilyIndex = std::numeric_limits<uint32_t>::max();
+    uint32_t presentQueueFamilyIndex = std::numeric_limits<uint32_t>::max();
+    // 1th of main family or 0th of only compute family
+    uint32_t computeQueueIndex = std::numeric_limits<uint32_t>::max();
+    {
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(selectedPhysicalDevice, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(selectedPhysicalDevice, &queueFamilyCount, queueFamilies.data());
+
+        for (uint32_t i = 0; i < queueFamilyCount; ++i)
+        {
+            auto &queueFamily = queueFamilies[i];
+            if (queueFamily.queueCount == 0)
+            {
+                continue;
+            }
+
+            std::cout << format("Queue Family Index {}, flags {}, queue count {}\n",
+                                i,
+                                queueFamily.queueFlags,
+                                queueFamily.queueCount);
+            // |: means or, both graphics and compute
+            if ((queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) == (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+            {
+                graphicsComputeQueueFamilyIndex = i;
+                // separate graphics and compute queue
+                if (queueFamily.queueCount > 1)
+                {
+                    computeQueueFamilyIndex = i;
+                    computeQueueIndex = 1;
+                }
+                continue;
+            }
+            // compute only
+            if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && computeQueueIndex == std::numeric_limits<uint32_t>::max())
+            {
+                computeQueueFamilyIndex = i;
+                computeQueueIndex = 0;
+            }
+            if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) == 0 && (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT))
+            {
+                transferQueueFamilyIndex = i;
+                continue;
+            }
+        }
+    }
+
+    // 13. create logic device
     {
         // must use the extension supported by the selected physical device
         // hard coded here
@@ -439,20 +511,54 @@ void createVulkanInstance()
 
         };
 
-        // queue for the logic device
-        const float queuePriority[] = {1.0f};
-        VkDeviceQueueCreateInfo queueInfo[1] = {};
-        queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueInfo[0].queueFamilyIndex = familyIndexSupportSurface;
-        queueInfo[0].queueCount = 1;
-        queueInfo[0].pQueuePriorities = queuePriority;
+        // enable 3 queue family for the logic device (compute/graphics/transfer)
+        const float queuePriority[] = {1.0f, 1.0f};
+        VkDeviceQueueCreateInfo queueInfo[3] = {};
+
+        uint32_t queueCount = 0;
+        VkDeviceQueueCreateInfo &graphicsComputeQueue = queueInfo[queueCount++];
+        graphicsComputeQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        graphicsComputeQueue.queueFamilyIndex = graphicsComputeQueueFamilyIndex;
+        // within that queuefamily:[0(graphics), 1(compute)];
+        graphicsComputeQueue.queueCount = (graphicsComputeQueueFamilyIndex == computeQueueFamilyIndex ? 2 : 1);
+        graphicsComputeQueue.pQueuePriorities = queuePriority;
+        // compute in different queueFamily
+        if (graphicsComputeQueueFamilyIndex != computeQueueFamilyIndex)
+        {
+            VkDeviceQueueCreateInfo &computeOnlyQueue = queueInfo[queueCount++];
+            computeOnlyQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            computeOnlyQueue.queueFamilyIndex = computeQueueFamilyIndex;
+            computeOnlyQueue.queueCount = 1;
+            computeOnlyQueue.pQueuePriorities = queuePriority; // only the first float will be used (c-style)
+        }
+
+        if (transferQueueFamilyIndex != std::numeric_limits<uint32_t>::max())
+        {
+            VkDeviceQueueCreateInfo &transferOnlyQueue = queueInfo[queueCount++];
+            transferOnlyQueue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            transferOnlyQueue.queueFamilyIndex = transferQueueFamilyIndex;
+            transferOnlyQueue.queueCount = 1;
+            transferOnlyQueue.pQueuePriorities = queuePriority;
+        }
 
         // Enable all features through single linked list
-        // physicalFeatures2 --> dynamicRenderingFeatures --> nullptr;
+        // physicalFeatures2 --> indexing_features --> dynamicRenderingFeatures --> nullptr;
         VkPhysicalDeviceFeatures2 physicalFeatures2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
         vkGetPhysicalDeviceFeatures2(selectedPhysicalDevice, &physicalFeatures2);
         VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR};
         physicalFeatures2.pNext = &dynamicRenderingFeatures;
+
+        if (bindlessSupported)
+        {
+            VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, &dynamicRenderingFeatures};
+            indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+            indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+            physicalFeatures2.pNext = &indexingFeatures;
+        }
+
+        // descriptor_indexing
+        // Descriptor indexing is also known by the term "bindless",
+        // https://docs.vulkan.org/samples/latest/samples/extensions/descriptor_indexing/README.html
 
         VkDeviceCreateInfo logicDeviceCreateInfo{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
         logicDeviceCreateInfo.queueCreateInfoCount = sizeof(queueInfo) / sizeof(queueInfo[0]);
@@ -463,6 +569,27 @@ void createVulkanInstance()
 
         VK_CHECK(vkCreateDevice(selectedPhysicalDevice, &logicDeviceCreateInfo, nullptr, &gLogicDevice));
         ASSERT(gLogicDevice, "Failed to create logic device");
+
+        setCorrlationId(gInstance, VK_OBJECT_TYPE_INSTANCE, "Instance: testVulkan");
+        setCorrlationId(gLogicDevice, VK_OBJECT_TYPE_DEVICE, "Logic Device");
+
+        // Initialize volk for this device
+        volkLoadDevice(gLogicDevice);
+    }
+
+    {
+        // 0th queue of that queue family is graphics
+        vkGetDeviceQueue(gLogicDevice, graphicsComputeQueueFamilyIndex, 0, &gGraphicsQueue);
+        vkGetDeviceQueue(gLogicDevice, computeQueueFamilyIndex, computeQueueIndex, &gComputeQueue);
+
+        // Get transfer queue if present
+        if (transferQueueFamilyIndex != std::numeric_limits<uint32_t>::max())
+        {
+            vkGetDeviceQueue(gLogicDevice, transferQueueFamilyIndex, 0, &gTransferQueue);
+        }
+        ASSERT(gGraphicsQueue, "Failed to access graphics queue");
+        ASSERT(gTransferQueue, "Failed to access compute queue");
+        ASSERT(gTransferQueue, "Failed to access transfer queue");
     }
 }
 
