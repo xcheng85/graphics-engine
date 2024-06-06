@@ -6,18 +6,13 @@ indoor: BSP, portal
 c++ lib: boost, folly, loki
 phys, ode, bullet
 bsp, quadtree,octree,kd tree, sphere hierachy
-
 visual effects: full-screen post effects. 
-
 partical, ---> low-level renderer --> post-effect
-
 built custom profilling and debugging tools
 in-game debugging facility: debug drawing, record events and play back. 
-
 how to calculate memory usage
 dump memory usage, leakage stats
 core dumps
-
 
 ## Software object model
 1. how object is identified
@@ -143,7 +138,7 @@ ui to check the debugger info
 
 ## Concurrent 
 task: web server listening, web client reading, each frame update to vram
-data: calculating matrix, cuda
+data: calculating matrix, add_compile_options
 
 ## Process and threads (kernal space)
 boost user-space thread
@@ -198,12 +193,52 @@ semaphore implements pub-sub two thredas
 ## Lock-free algorithm
 
 
-
-
-
 ## submodule
 ```shell
 git submodule add https://github.com/glfw/glfw.git external/glfw
+git submodule add https://github.com/google/benchmark.git external/benchmark
+git submodule add https://github.com/lua/lua.git external/lua
+git submodule add https://github.com/libsdl-org/SDL.git external/sdl
+git submodule add https://github.com/nlohmann/json.git external/json
+
+git submodule add https://github.com/zeux/volk.git volk
+git submodule add https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git VulkanMemoryAllocator
+cmake -S . -B build
+# Since VMA has no source files, you can skip to installation immediately
+cmake --install build --prefix build/install
+git checkout v3.11.3
+```
+
+## sdl2
+```shell
+sudo apt-cache search libsdl2
+
+# 
+sudo apt-get install libsdl2-dev 
+sudo apt-get install libsdl2-image-dev 
+sudo apt-get install libsdl2-mixer-dev 
+sudo apt-get install libsdl2-ttf-dev 
+
+# header
+/usr/include/SDL2
+/usr/lib/x86_64_
+
+# check .cmake config files
+# automatically crearted
+/usr/lib/x86_64-linux-gnu/cmake/SDL2/sdl2-config.cmake
+# include dir is automatically created
+set(SDL2_INCLUDE_DIRS "${includedir}/SDL2")
+# static link
+set(SDL2_LIBRARIES "-L${SDL2_LIBDIR}  -lSDL2")
+
+# dependencies for ubuntu22.04
+sudo apt-get install build-essential git make \
+pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+libpipewire-0.3-dev libwayland-dev libdecor-0-dev
 ```
 
 ## glfw
@@ -230,4 +265,59 @@ cmake \
 cmake --build build -- all
 sudo cmake --build build -- install
 
+```
+## vulkan
+```shell
+sudo apt update
+sudo apt install vulkan-sdk
+
+# or use tarbal to control the version
+tar -xvf vulkansdk-linux-x86_64-1.3.280.1.tar.xz
+#.bashrc
+export VULKAN_SDK=~/vulkan/1.3.280.1/x86_64
+export PATH=$VULKAN_SDK/bin:$PATH
+export LD_LIBRARY_PATH=$VULKAN_SDK/lib:$LD_LIBRARY_PATH
+export VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d
+```
+
+## profiling
+
+### 1. nvidia visual profile (COMPUTING)
+```shell
+sudo apt-get install libcanberra-gtk*
+sudo apt install openjdk-8-jdk
+nvvp -vm /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java ./testOpenGL
+```
+
+### 2. nvidia nsight graphics
+```shell
+sh ./NVIDIA_Nsight_Graphics_2024.1.0.24079.run
+
+#xiao@xiao-Alienware-m15-Ryzen-Ed-R5:~/nvidia_nsight_graphics/NVIDIA-Nsight-Graphics-2024.1/host/linux-desktop-nomad-x64$ 
+
+# launch it
+# nvidia_nsight_graphics depends on qt and qt depends oin the following
+sudo apt-get -y install build-essential openssl libssl-dev libssl1.0 libgl1-mesa-dev libqt5x11extras5 '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+
+cd ~/nvidia_nsight_graphics/NVIDIA-Nsight-Graphics-2024.1/host/linux-desktop-nomad-x64
+# sudo is needed for nvidia gpu perf counter
+sudo ./ngfx-ui
+
+# linking profiler tcmalloc needs to be disabled
+
+# delete "/root/nvidia/NVIDIA-Nsight-Graphics-2024.1"
+```
+
+### 3. Heaptrack
+```shell
+sudo apt install heaptrack
+heaptrack ./testOpenGL
+heaptrack --analyze "/home/xiao/github.com/xcheng85/graphics-engine/build/bin/heaptrack.testOpenGL.3832308.zst"
+heaptrack_gui heaptrack.testOpenGL.2241192.zst 
+```
+
+### 4. Valgrind
+```shell
+sudo apt-get install valgrind
+valgrind --leak-check=yes --leak-check=full --show-leak-kinds=all ./testOpenGL 
 ```
