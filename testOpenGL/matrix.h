@@ -114,11 +114,11 @@ using mat4x4f = mat<float, 4, 64>;
 // linear transformation (S + R) + translation (T)
 // not commutative
 
+// colum-major
 template <typename T>
 inline mat<T, 4, sizeof(T) * 16> MatrixMultiply4x4(const mat<T, 4, sizeof(T) * 16> &m1, const mat<T, 4, sizeof(T) * 16> &m2)
 {
     mat<T, 4, sizeof(T) * 16> res;
-
     for (int r = 0; r < 4; ++r)
     {
         auto x = m1.data[r][0];
@@ -131,6 +131,20 @@ inline mat<T, 4, sizeof(T) * 16> MatrixMultiply4x4(const mat<T, 4, sizeof(T) * 1
         res.data[r][2] = (m2.data[0][2] * x) + (m2.data[1][2] * y) + (m2.data[2][2] * z) + (m2.data[3][2] * w);
         res.data[r][3] = (m2.data[0][3] * x) + (m2.data[1][3] * y) + (m2.data[2][3] * z) + (m2.data[3][3] * w);
     }
+
+    // // colum-major
+    // for (int c = 0; c < 4; ++c)
+    // {
+    //     auto x = m2.data[0][c];
+    //     auto y = m2.data[1][c];
+    //     auto z = m2.data[2][c];
+    //     auto w = m2.data[3][c];
+
+    //     res.data[0][c] = (m1.data[0][0] * x) + (m1.data[0][1] * y) + (m1.data[0][2] * z) + (m1.data[0][3] * w);
+    //     res.data[1][c] = (m1.data[1][0] * x) + (m1.data[1][1] * y) + (m1.data[1][2] * z) + (m1.data[1][3] * w);
+    //     res.data[2][c] = (m1.data[2][0] * x) + (m1.data[2][1] * y) + (m1.data[2][2] * z) + (m1.data[2][3] * w);
+    //     res.data[3][c] = (m1.data[3][0] * x) + (m1.data[3][1] * y) + (m1.data[3][2] * z) + (m1.data[3][3] * w);
+    // }
 
     return res;
 }
@@ -147,6 +161,15 @@ inline mat<T, 4, sizeof(T) * 16> MatrixScale4x4(T sx, T sy, T sz)
 }
 
 template <typename T>
+inline mat<T, 4, sizeof(T) * 16> MatrixScale4x4(const vec<T, 3, sizeof(T) * 4> &scaleVector)
+{
+    return MatrixScale4x4(
+        scaleVector[COMPONENT::X],
+        scaleVector[COMPONENT::Y],
+        scaleVector[COMPONENT::Z]);
+}
+
+template <typename T>
 inline mat<T, 4, sizeof(T) * 16> MatrixTranslation4x4(T tx, T ty, T tz)
 {
     mat<T, 4, sizeof(T) * 16> res;
@@ -158,6 +181,15 @@ inline mat<T, 4, sizeof(T) * 16> MatrixTranslation4x4(T tx, T ty, T tz)
     res.data[3][2] = tz;
     res.data[3][3] = 1.0f;
     return res;
+}
+
+template <typename T>
+inline mat<T, 4, sizeof(T) * 16> MatrixTranslation4x4(const vec<T, 3, sizeof(T) * 4> &translationVector)
+{
+    return MatrixTranslation4x4(
+        translationVector[COMPONENT::X],
+        translationVector[COMPONENT::Y],
+        translationVector[COMPONENT::Z]);
 }
 
 // to do: a 11-degree minimax approximation for sine; 10-degree for cosine.

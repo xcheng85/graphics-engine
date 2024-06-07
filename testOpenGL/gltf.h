@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <optional>
 
 #include "memory.h"
 #include "vector.h"
@@ -58,10 +59,10 @@ namespace IO::GLTF
         // "children": [1, 2, 3, 4]
         CustomInt32Vector children;
         // model-space column-major transformation (GL/vulkan)
-        mat4x4f matrix;
-        vec3f translation;
-        vec3f scale;
-        vec4f rotationQuat;
+        std::optional<mat4x4f> matrix{std::nullopt};
+        std::optional<vec3f> translation{std::nullopt};
+        std::optional<vec3f> scale{std::nullopt};
+        std::optional<vec4f> rotationQuat{std::nullopt};
     };
 
     struct Primitive

@@ -163,19 +163,27 @@ namespace IO::GLTF
         }
         if (json_node.contains("matrix"))
         {
-            parseMat4x4f(json_node["matrix"], node.matrix);
+            mat4x4f tmp;
+            parseMat4x4f(json_node["matrix"], tmp);
+            node.matrix = std::make_optional<mat4x4f>(tmp);
         }
         if (json_node.contains("translation"))
         {
-            parseVec3f(json_node["translation"], node.translation);
+            vec3f tmp;
+            parseVec3f(json_node["translation"], tmp);
+            node.translation = std::make_optional<vec3f>(tmp);
         }
         if (json_node.contains("scale"))
         {
-            parseVec3f(json_node["scale"], node.scale);
+            vec3f tmp;
+            parseVec3f(json_node["scale"], tmp);
+            node.scale = std::make_optional<vec3f>(tmp);
         }
         if (json_node.contains("rotation"))
         {
-            parseVec4f(json_node["rotation"], node.rotationQuat);
+            vec4f tmp;
+            parseVec4f(json_node["rotation"], tmp);
+            node.rotationQuat = std::make_optional<vec4f>(tmp);
         }
     }
     // attributes is required
